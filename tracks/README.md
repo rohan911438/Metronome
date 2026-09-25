@@ -9,10 +9,8 @@ Metronome is a fully onchain **frequent batch auction** exchange on Monad. Every
 | 3 | **Agora — Best Mobile Trading App** | Part of Agora's $20k | Applying (rules TBC) | [bounty-agora-mobile-trading.md](bounty-agora-mobile-trading.md) |
 | 4 | **Privy — Integration bounty** | $5k | Applying (rules TBC) | [bounty-privy.md](bounty-privy.md) |
 | 5 | **Chainlink — Best CRE workflow** | $3k | Applying (rules TBC) | [bounty-chainlink-cre.md](bounty-chainlink-cre.md) |
-| 6 | **Envio — Indexer** | $5k in free hosting (credits) | Applying (rules TBC) | [bounty-envio.md](bounty-envio.md) |
-| 7 | **Alchemy — Platform credits** | $1k in credits | Applying (rules TBC) | [bounty-alchemy.md](bounty-alchemy.md) |
-
-**Stretch goal:** Mercuryo ($10k in credits and support), adding a "Buy AUSD with card" button in the mobile app, only if time allows in the last days.
+**Cash prizes only.** We skip any prize paid in credits, hosting or plans: Envio, Alchemy, Mercuryo, Chainstack, Crouton, Zerion, Spectrum Nodes, ack3.
+Before submitting, confirm on the dashboard that items 3–5 are paid in cash.
 
 **Not targeting:** Kuru (competing exchange), Perpl (perps tools), Nansen and Aurora Intents (weak fit), Dynamic (does the same job as Privy).
 

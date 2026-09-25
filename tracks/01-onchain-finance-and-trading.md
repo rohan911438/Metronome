@@ -1,7 +1,7 @@
 # Track 01 — Onchain Finance & Trading (MAIN TRACK)
 
 **Prize:** $30,000 split evenly between 3 winners, so **$10,000 per winner**.
-**Extra perk:** Chainstack gives annual Pro plans to Track 01 winners and the overall winner.
+**Extra perk (not cash, not a goal):** Chainstack gives annual Pro plans to Track 01 winners.
 
 ## What the track asks for (official wording, summarised)
 - Aimed at teams experienced in shipping trading, lending, or market-making products
