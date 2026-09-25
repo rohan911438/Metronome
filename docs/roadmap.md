@@ -40,11 +40,12 @@ Solo build. Design: [`architecture.md`](architecture.md). Submission target **Oc
 - [x] Redeployed to testnet (v2 `0x99E4…a889`); resting post → settle → cancel verified live
 
 ### Phase 3 — Bots and demo contracts (Oct 2–3)
-- [ ] pnpm workspace, shared `config.ts` (addresses, ABIs via `forge inspect`)
-- [ ] Keeper: block watcher → `settleAndClaim`
-- [ ] MM bot: ladder quoting, 3 wallets, inventory limits
+- [x] pnpm workspace, shared `config.ts` (addresses from deployments JSON, ABIs generated from `forge build`)
+- [x] Keeper: block watcher → `settleAndClaim`, resting harvests
+- [x] MM bot: resting ladder, re-quote on price moves, inventory limits (single wallet for now)
+- [x] Local end-to-end test (Anvil) in CI: 60 random takers, 55 filled, 0 bot errors
 - [x] `MiniAMM.sol` + `SandwichLab.sol` (tests: AMM victim −4.17%, Metronome victim 0)
-- [ ] Sandwich script against testnet → M2
+- [ ] Run keeper + MM + sandwich on testnet → M2 (**blocked: needs testnet AUSD**)
 
 ### Phase 4 — Frontend + Privy + Agora (Oct 4–7)
 - [ ] Oct 4: Next.js scaffold, wagmi/viem, Privy provider, Monad chain config, Trade page ticket

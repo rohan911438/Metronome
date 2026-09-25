@@ -129,7 +129,8 @@ Metronome is meant to be **infrastructure**, not a single app:
 | Core contract with differential fuzz + invariant tests | Oct 1 | ✅ |
 | Resting (maker) orders: post once, fill across batches (90 tests passing) | — | ✅ |
 | Deployed on Monad testnet: [`0x99E4…a889`](https://testnet.monadscan.com/address/0x99E4DBCF8edE8092Be972307eB3d0Cd91ecBa889), taker and resting cycles verified live | Oct 1 | ✅ |
-| Live market with keeper and market-maker bots; sandwich demo | Oct 3 | ⏳ |
+| Keeper + market-maker bots; end-to-end test on a local chain (sandwich: AMM victim −527 bps, Metronome 0) | Oct 3 | ✅ |
+| Bots live on testnet with real AUSD liquidity | Oct 3 | ⏳ (needs testnet AUSD) |
 | End-to-end trade on a phone | Oct 7 | ⏳ |
 | Chainlink workflow and parallelism benchmark | Oct 9 | ⏳ |
 | Monad mainnet | Oct 10 | ⏳ |
@@ -144,7 +145,7 @@ docs/
   roadmap.md        milestones, day-by-day plan, cut order, risks
   network.md        verified addresses: tokens, oracles, Chainlink CRE support
 contracts/          Foundry: Metronome.sol, libraries, tests
-bots/               keeper, market maker, benchmark            (coming)
+bots/               keeper, market maker, local end-to-end test
 cre/                Chainlink CRE workflow                     (coming)
 web/                Next.js mobile PWA                         (coming)
 ideas/              original pitch

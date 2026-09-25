@@ -1,0 +1,23 @@
+{
+  "name": "@metronome/bots",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "abi": "node scripts/gen-abi.mjs",
+    "keeper": "tsx src/keeper.ts",
+    "mm": "tsx src/mm.ts",
+    "e2e:local": "tsx src/e2e-local.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "dotenv": "17.2.3",
+    "viem": "2.56.8"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.6",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2",
+    "vitest": "5.0.1"
+  }
+}

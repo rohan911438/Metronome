@@ -1,0 +1,6 @@
+packages:
+  - bots
+
+# tsx needs esbuild's install script (it fetches the platform binary).
+allowBuilds:
+  esbuild: true

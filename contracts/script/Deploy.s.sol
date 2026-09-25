@@ -9,6 +9,16 @@ import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IER
 import {Metronome} from "../src/Metronome.sol";
 import {TickMath} from "../src/lib/TickMath.sol";
 
+/// @notice PRICE_MIN such that tick `centerTick` is priced at `refPriceE18` (whole quote per whole base).
+function priceMinAt(uint256 refPriceE18, uint8 baseDecimals, uint8 quoteDecimals, uint256 centerTick)
+    pure
+    returns (uint256)
+{
+    // Raw quote per raw base, scaled by 1e36.
+    uint256 refRaw = (refPriceE18 * 10 ** quoteDecimals * 1e36) / (1e18 * 10 ** baseDecimals);
+    return (refRaw * 1e18) / TickMath.factor(centerTick);
+}
+
 /// @notice Deploys one Metronome market and writes its config to deployments/<chainId>.json.
 /// @dev Config via env (all optional on testnet):
 ///      BASE_TOKEN, QUOTE_TOKEN   token addresses (testnet defaults: WMON, AUSD)
@@ -47,9 +57,7 @@ contract Deploy is Script {
 
     /// @notice PRICE_MIN such that tick CENTER_TICK is priced at `refPriceE18` (whole quote per whole base).
     function priceMinFor(uint256 refPriceE18, uint8 baseDecimals, uint8 quoteDecimals) public pure returns (uint256) {
-        // Raw quote per raw base, scaled by 1e36.
-        uint256 refRaw = (refPriceE18 * 10 ** quoteDecimals * 1e36) / (1e18 * 10 ** baseDecimals);
-        return (refRaw * 1e18) / TickMath.factor(CENTER_TICK);
+        return priceMinAt(refPriceE18, baseDecimals, quoteDecimals, CENTER_TICK);
     }
 
     function _tokens() internal view returns (address base, address quote) {

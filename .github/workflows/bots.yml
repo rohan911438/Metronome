@@ -1,0 +1,31 @@
+name: bots
+
+on:
+  push:
+    branches: [main]
+    paths: ["bots/**", "contracts/**", "pnpm-lock.yaml", ".github/workflows/bots.yml"]
+  pull_request:
+    paths: ["bots/**", "contracts/**", "pnpm-lock.yaml", ".github/workflows/bots.yml"]
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: foundry-rs/foundry-toolchain@v1
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build contracts
+        run: forge build
+        working-directory: contracts
+      - name: ABI is up to date
+        run: pnpm --filter @metronome/bots abi && git diff --exit-code bots/src/abi.ts
+      - run: pnpm --filter @metronome/bots typecheck
+      - name: End-to-end on Anvil
+        run: pnpm e2e:local
