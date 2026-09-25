@@ -51,27 +51,28 @@ CoW Protocol does batch auctions with **offchain solvers** you have to trust. Me
 
 ## Stack
 - Contracts: Solidity + Foundry, with fuzz/invariant tests on clearing math (conservation of funds, no fill beyond the limit price)
-- Keeper: settle bot (optionally a Chainlink CRE workflow, which targets the CRE bounty)
-- Indexer: Envio (free hosting perk) for batch history and charts
-- Frontend: Next.js PWA, mobile-first, with passkey login (Privy/Dynamic, or raw P256 precompile 0x0100)
+- Keeper: our own settle bot, plus a Chainlink CRE workflow (CRE bounty) if CRE supports Monad
+- Data: the frontend reads contract events directly over RPC (no separate indexer)
+- Frontend: Next.js PWA, mobile-first, with Privy passkey login and embedded wallet
 - Market-maker bot so the demo has real liquidity
 - Pair: MON/AUSD (testnet AUSD is available)
 
-## Bounties to stack (check exact rules on the hackathon dashboard)
+## Prizes we target (cash only; full details in `tracks/`)
+- Track 01 ($10k) and Grand Champion ($25k)
 - Agora "Best Mobile Trading App" (AUSD): mobile UI with AUSD pair
+- Privy ($5k): passkey login, embedded wallet, popup-free signing
 - Chainlink CRE ($3k): keeper/settlement workflow
-- Privy ($5k) or Dynamic ($5k): passkey onboarding
-- Envio: indexer
-- Chainstack: Track 01 winners get Pro plans
 
-## 18-day plan (Sep 25 → Oct 13)
+## 18-day plan (Sep 25 → Oct 13), solo scope
+Cut for now: multi-batch orders, router contract, extra markets.
+
 | Days | Work |
 |---|---|
 | 1–2 | Final spec, math for clearing and pro-rata, Foundry setup, testnet RPC |
 | 3–7 | Core contracts: place / settle / claim / cancel, sharded buckets, fuzz + invariant tests |
 | 8–10 | Settle keeper, MM bot, sandwich-attack simulator, parallelism benchmark |
-| 8–13 | Frontend: trading UI, batch visualizer, passkey login (in parallel) |
-| 11–13 | Envio indexer, Chainlink CRE workflow, router contract |
+| 8–13 | Frontend: trading UI, batch visualizer, Privy login (in parallel) |
+| 11–13 | Chainlink CRE workflow |
 | 14–15 | Mainnet deploy (chain 143), bug bash, security pass |
 | 16–17 | Polish, README with diagrams, **demo video** |
 | 18 | Submit (don't leave it to the last hour) |
