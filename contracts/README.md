@@ -30,7 +30,7 @@ Line coverage: libraries 100%, total ~91% (`forge coverage --ir-minimum` under-r
 
 ## Gas
 
-Measured by `test/Gas.t.sol` with Foundry's Ethereum gas schedule. Monad prices cold storage differently; testnet numbers will be added after deploy.
+Measured by `test/Gas.t.sol` with Foundry's Ethereum gas schedule. Monad prices cold storage higher: on testnet, place = 248k, settle (1 tick) = 276k, claim = 91k. See [`../docs/network.md`](../docs/network.md).
 
 | Action | Gas |
 |---|---|

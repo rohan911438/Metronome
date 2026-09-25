@@ -18,7 +18,7 @@ Solo build. Design: [`architecture.md`](architecture.md). Submission target **Oc
 
 ### Phase 1 — Foundations (Sep 25–26)
 - [ ] Copy official sponsor rules from the dashboard into `tracks/` (Agora, Privy, Chainlink). **These decide phases 4–5.**
-- [ ] Get testnet MON from the faucet (**needs the deployer wallet**)
+- [x] Get testnet MON from the faucet
 - [x] Find the testnet AUSD address and WMON address; check for a Chainlink MON/USD feed on Monad
 - [x] `forge init contracts`, OpenZeppelin, `foundry.toml` with Monad testnet/mainnet RPCs
 - [x] `TickMath.sol` + exhaustive test over all 4096 ticks
@@ -32,7 +32,7 @@ Solo build. Design: [`architecture.md`](architecture.md). Submission target **Oc
 - [x] Sep 29: `settle` (reads shards → clearing → result), oracle guard, keeper reward
 - [x] Sep 30: `claim`, `claimMany`, `settleAndClaim`, fees, pause; unit tests for every path
 - [x] Oct 1: invariant suite, gas numbers, `Deploy.s.sol` (dry-run against testnet passes)
-- [ ] **Deploy to testnet** → M1 (needs a funded key, ~1 testnet MON)
+- [x] **Deploy to testnet** → M1 ✅ (Sep 25, see `docs/network.md`)
 
 ### Phase 3 — Bots and demo contracts (Oct 2–3)
 - [ ] pnpm workspace, shared `config.ts` (addresses, ABIs via `forge inspect`)

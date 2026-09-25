@@ -19,6 +19,33 @@ Verified values the code and bots rely on. **"Verified"** means checked with an 
 
 The old testnet WMON address `0x760AfE86e5de5fa0Ee542fc7B7B713e1c5425701` has **no code**. Don't use it.
 
+## Metronome deployments
+
+| | Testnet |
+|---|---|
+| **Metronome (WMON/AUSD)** | [`0xd9eD8A732D8daE96855b40e1ebD65E9d36583ea1`](https://testnet.monadscan.com/address/0xd9eD8A732D8daE96855b40e1ebD65E9d36583ea1) |
+| Deploy tx | `0xba404411c9d16a09c5730beaca29ab3bc79a4ece870079a10f913a67f696dbaf` (block 65,615,597) |
+| Config | 16 shards, tick 2048 = 0.025 AUSD, min order 1 MON, fee 5 bps |
+| Owner / deployer | `0x0D350bc1b4102732cFe243f80fe693f428572373` |
+
+Machine-readable copy: `contracts/deployments/10143.json`.
+
+**Smoke test (Sep 25):** wrap → place sell 1 WMON → settle (no buyers, volume 0) → claim returned exactly 1 WMON; contract left holding 0.
+
+**Measured gas on Monad testnet** (Monad charges more than Ethereum for cold storage):
+
+| Action | Monad testnet | Foundry (Ethereum schedule) |
+|---|---|---|
+| `placeOrder` (first order in a batch) | 247,900 | 127,465 |
+| `settle` (1 active tick, 16 shards) | 275,775 | 66,109 (4 shards) |
+| `claim` | 90,930 | 41,993 |
+
+Settle's fixed cost is mostly the 16 cold shard-summary reads. That's the price of the parallel-friendly layout, and the benchmark (Phase 5) will show whether it's worth it.
+
+## AUSD faucet status
+
+The Agora testnet faucet (`0xd236…ee6C`, `requestFunds(address)`, 10,000 AUSD per drip) was **empty on Sep 25**: it held 1 raw unit and reverted with `InsufficientFunds`.
+
 ## Oracles
 
 - **Chainlink Data Feeds (push):** no MON/USD feed listed for Monad in Monad's docs (checked Sep 25). Chainlink Data Streams (pull) is live.
