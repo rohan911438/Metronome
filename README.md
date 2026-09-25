@@ -140,7 +140,8 @@ Contract addresses, test results, gas numbers and the demo video will be added h
 docs/
   architecture.md   contract design, clearing algorithm, storage layout, testing
   roadmap.md        milestones, day-by-day plan, cut order, risks
-contracts/          Foundry: Metronome.sol, libraries, tests   (coming)
+  network.md        verified addresses: tokens, oracles, Chainlink CRE support
+contracts/          Foundry: Metronome.sol, libraries, tests
 bots/               keeper, market maker, benchmark            (coming)
 cre/                Chainlink CRE workflow                     (coming)
 web/                Next.js mobile PWA                         (coming)

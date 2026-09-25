@@ -22,6 +22,6 @@
 - Keep our own settle bot as a fallback, and explain why CRE is better (no single server to go down)
 
 ## Open questions
-- [ ] Does CRE support writing to Monad (testnet and/or mainnet)?
-- [ ] Is a MON/USD or AUSD price feed available on Monad?
+- [x] Does CRE support Monad? **Yes, mainnet and testnet** (see `docs/network.md`). Exact capabilities still to confirm with the CLI
+- [x] Is a MON/USD price feed available on Monad? **No Chainlink push feed listed; Pyth MON/USD exists** (see `docs/network.md`)
 - [ ] How fast can a CRE workflow trigger, and can it keep up with 300ms blocks? If not, settle every N blocks
