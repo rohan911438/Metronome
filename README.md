@@ -128,7 +128,7 @@ Metronome is meant to be **infrastructure**, not a single app:
 | Architecture and roadmap | Sep 25 | ✅ |
 | Core contract with differential fuzz + invariant tests | Oct 1 | ✅ |
 | Resting (maker) orders: post once, fill across batches (90 tests passing) | — | ✅ |
-| Deployed on Monad testnet: [`0xd9eD…3ea1`](https://testnet.monadscan.com/address/0xd9eD8A732D8daE96855b40e1ebD65E9d36583ea1), full cycle verified | Oct 1 | ✅ |
+| Deployed on Monad testnet: [`0x99E4…a889`](https://testnet.monadscan.com/address/0x99E4DBCF8edE8092Be972307eB3d0Cd91ecBa889), taker and resting cycles verified live | Oct 1 | ✅ |
 | Live market with keeper and market-maker bots; sandwich demo | Oct 3 | ⏳ |
 | End-to-end trade on a phone | Oct 7 | ⏳ |
 | Chainlink workflow and parallelism benchmark | Oct 9 | ⏳ |

@@ -37,7 +37,7 @@ Solo build. Design: [`architecture.md`](architecture.md). Submission target **Oc
 ### Phase 2b — Resting orders (added Sep 25)
 - [x] Found that one-batch orders make market making cost ~0.8 MON/s on testnet; chose resting orders (per-price pools with share accumulators)
 - [x] Contract, 16 resting unit tests, invariants extended (pools consistent, book never crosses); makers pay no fee
-- [ ] Redeploy to testnet with the new API
+- [x] Redeployed to testnet (v2 `0x99E4…a889`); resting post → settle → cancel verified live
 
 ### Phase 3 — Bots and demo contracts (Oct 2–3)
 - [ ] pnpm workspace, shared `config.ts` (addresses, ABIs via `forge inspect`)

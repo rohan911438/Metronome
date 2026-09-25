@@ -1,8 +1,8 @@
 {
   "metronome": {
-    "address": "0xd9eD8A732D8daE96855b40e1ebD65E9d36583ea1",
+    "address": "0x99E4DBCF8edE8092Be972307eB3d0Cd91ecBa889",
     "base": "0xFb8bf4c1CC7a94c73D209a149eA2AbEa852BC541",
-    "deployBlock": 65615597,
+    "deployBlock": 65622114,
     "minOrderSize": 1000000000000000000,
     "owner": "0x0D350bc1b4102732cFe243f80fe693f428572373",
     "priceMin": "3228117476499511058185",

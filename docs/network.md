@@ -23,14 +23,16 @@ The old testnet WMON address `0x760AfE86e5de5fa0Ee542fc7B7B713e1c5425701` has **
 
 | | Testnet |
 |---|---|
-| **Metronome (WMON/AUSD)** | [`0xd9eD8A732D8daE96855b40e1ebD65E9d36583ea1`](https://testnet.monadscan.com/address/0xd9eD8A732D8daE96855b40e1ebD65E9d36583ea1) |
-| Deploy tx | `0xba404411c9d16a09c5730beaca29ab3bc79a4ece870079a10f913a67f696dbaf` (block 65,615,597) |
+| **Metronome v2 (WMON/AUSD), current** | [`0x99E4DBCF8edE8092Be972307eB3d0Cd91ecBa889`](https://testnet.monadscan.com/address/0x99E4DBCF8edE8092Be972307eB3d0Cd91ecBa889) (block 65,622,114): taker + resting orders |
+| Metronome v1 (retired) | [`0xd9eD8A732D8daE96855b40e1ebD65E9d36583ea1`](https://testnet.monadscan.com/address/0xd9eD8A732D8daE96855b40e1ebD65E9d36583ea1) (block 65,615,597): taker orders only |
 | Config | 16 shards, tick 2048 = 0.025 AUSD, min order 1 MON, fee 5 bps |
 | Owner / deployer | `0x0D350bc1b4102732cFe243f80fe693f428572373` |
 
 Machine-readable copy: `contracts/deployments/10143.json`.
 
-**Smoke test (Sep 25):** wrap → place sell 1 WMON → settle (no buyers, volume 0) → claim returned exactly 1 WMON; contract left holding 0.
+**Smoke tests (Sep 25):**
+- v1: wrap → place sell 1 WMON → settle (no buyers, volume 0) → claim returned exactly 1 WMON; contract left holding 0.
+- v2: resting sell 1 WMON @ tick 2050 → settle (joined the pool; `getRestingBook` showed it) → cancel returned exactly 1 WMON, pool removed from the book; contract left holding 0.
 
 **Measured gas on Monad testnet** (Monad charges more than Ethereum for cold storage):
 
@@ -39,8 +41,11 @@ Machine-readable copy: `contracts/deployments/10143.json`.
 | `placeOrder` (first order in a batch) | 247,900 | 127,465 |
 | `settle` (1 active tick, 16 shards) | 275,775 | 66,109 (4 shards) |
 | `claim` | 90,930 | 41,993 |
+| v2 `placeOrder` (resting) | 305,556 | 250,476 (isolated) |
+| v2 `settle` (1 pool joins, 16 shards) | 760,007 | 302,696 (isolated, 4 shards) |
+| v2 `cancel` (resting) | 452,719 | 95,281 (isolated, 4 shards) |
 
-Settle's fixed cost is mostly the 16 cold shard-summary reads. That's the price of the parallel-friendly layout, and the benchmark (Phase 5) will show whether it's worth it.
+Settle's and cancel's fixed cost is mostly scanning 16 shards cold (bitmap summaries, and in v2 the per-shard batch chains: ~32 cold reads). That's the price of the parallel-friendly layout. The Phase 5 benchmark compares K=1/4/16 to pick the right shard count.
 
 ## AUSD faucet status
 
