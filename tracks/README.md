@@ -8,8 +8,15 @@ Metronome is a fully onchain **frequent batch auction** exchange on Monad. Every
 | 2 | **Grand Champion** (all tracks) | $25k | Auto-considered | [grand-champion.md](grand-champion.md) |
 | 3 | **Agora — Best Mobile Trading App** | Part of Agora's $20k | Applying (rules TBC) | [bounty-agora-mobile-trading.md](bounty-agora-mobile-trading.md) |
 | 4 | **Privy — Integration bounty** | $5k | Applying (rules TBC) | [bounty-privy.md](bounty-privy.md) |
+| 5 | **Chainlink — Best CRE workflow** | $3k | Applying (rules TBC) | [bounty-chainlink-cre.md](bounty-chainlink-cre.md) |
+| 6 | **Envio — Indexer** | $5k in free hosting (credits) | Applying (rules TBC) | [bounty-envio.md](bounty-envio.md) |
+| 7 | **Alchemy — Platform credits** | $1k in credits | Applying (rules TBC) | [bounty-alchemy.md](bounty-alchemy.md) |
 
-Not targeting (solo scope): Chainlink CRE, Envio, Kuru, Perpl, Nansen. We can add these if time allows.
+**Stretch goal:** Mercuryo ($10k in credits and support), adding a "Buy AUSD with card" button in the mobile app, only if time allows in the last days.
+
+**Not targeting:** Kuru (competing exchange), Perpl (perps tools), Nansen and Aurora Intents (weak fit), Dynamic (does the same job as Privy).
+
+> One project normally enters **one** main track. Sponsor bounties stack on top of it, so that's where the extra chances come from.
 
 > **TBC** means the exact sponsor rules are only on the logged-in dashboard at https://hackathon.monad.xyz.
 > Before building each integration, copy the official wording into that file.
