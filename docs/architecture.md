@@ -148,13 +148,20 @@ For an order at tick `t` in a batch with result `(t*, V, rationed, num/den)`:
 | Order | Fill in base units |
 |---|---|
 | buy, `t > t*` / sell, `t < t*` | `size` |
-| at `t == t*` on the rationed side | `size × num / den` (rounded **down**) |
+| at `t == t*` on the rationed side | `size × num / den` (exact fraction, rounded as below) |
 | at `t == t*` on the other side | `size` |
 | worse than `t*` | 0 |
 
-- Buyer receives `fill` base and pays `ceil(fill × price(t*))` quote plus the fee. Refund = `escrow − paid − fee`.
-- Seller receives `floor(fill × price(t*))` quote minus fee. Refund = `size − fill` base.
-- **All rounding favours the contract.** Dust stays in the contract, and the invariant says it may only ever grow.
+Each order's exact fill is the fraction `size × num / den` (or `size`, or 0). Its exact quote value is `fill × price(t*)`, computed from that **exact** fraction, not from a rounded base amount.
+
+**Rounding rule: what a user gives is rounded up, and what a user receives is rounded down, each from their exact share.**
+
+| | Receives (rounded down) | Gives (rounded up) |
+|---|---|---|
+| Buyer | `floor(fill)` base | `ceil(fill × price)` quote + fee, from escrow. The rest of escrow is refunded |
+| Seller | `floor(fill × price)` quote − fee | `ceil(fill)` base, from escrow. The rest of escrow is refunded |
+
+Why this matters: rounding every order's *base* fill down and then pricing that rounded amount would let a batch owe a few wei more than it holds, once per rationed order. With this rule, the sum of what a batch pays out is at most its exact totals, and the sum of what it takes in is at least those totals. So **the contract can never owe more than it holds**, and leftover dust only ever grows. The invariant tests check this.
 
 ### 3.6 Fees and keeper reward
 
