@@ -54,7 +54,8 @@ flowchart LR
 
 - **Orders go into price-level buckets, not a queue.** Placing an order just adds its size to the bucket for its price, so there is nothing to jump ahead of.
 - **Settling costs the same with 10 orders or 10,000.** Clearing walks price levels, not orders, using a bitmap to skip empty ones.
-- **Claims are O(1) per user.** Each order reads its batch's result and computes its own fill. A keeper (or a Chainlink CRE workflow) claims for users, so trading feels like one tap.
+- **Makers post once.** Resting orders join a pool per price level and stay in every batch until filled or cancelled, so liquidity is there every block without re-posting. Makers pay no fee; takers pay 5 bps.
+- **Claims are O(1) per user.** Taker orders read their batch's result; resting orders read their pool's running totals. A keeper (or a Chainlink CRE workflow) claims for users, so trading feels like one tap.
 - **Only the marginal price level is partly filled**, pro-rata. Every order at a better price fills completely. Every order at a worse price is fully refunded.
 - **Nobody has to be trusted.** Anyone can call `settle`, and `claim` settles the batch itself if no one has yet.
 
@@ -116,7 +117,6 @@ Metronome is meant to be **infrastructure**, not a single app:
 
 - **A fair-execution venue any Monad dApp can route through.** Wallets, aggregators and apps call one interface and get sandwich-proof fills.
 - **More markets**, starting with the most-traded Monad pairs.
-- **Resting orders** that carry across batches, for market makers.
 - **Revenue:** a small fee on filled volume, part of which pays whoever settles batches.
 
 ## Status
@@ -126,7 +126,8 @@ Metronome is meant to be **infrastructure**, not a single app:
 | Milestone | Target | |
 |---|---|---|
 | Architecture and roadmap | Sep 25 | ✅ |
-| Core contract with differential fuzz + invariant tests (67 passing) | Oct 1 | ✅ |
+| Core contract with differential fuzz + invariant tests | Oct 1 | ✅ |
+| Resting (maker) orders: post once, fill across batches (90 tests passing) | — | ✅ |
 | Deployed on Monad testnet: [`0xd9eD…3ea1`](https://testnet.monadscan.com/address/0xd9eD8A732D8daE96855b40e1ebD65E9d36583ea1), full cycle verified | Oct 1 | ✅ |
 | Live market with keeper and market-maker bots; sandwich demo | Oct 3 | ⏳ |
 | End-to-end trade on a phone | Oct 7 | ⏳ |

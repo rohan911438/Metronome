@@ -6,7 +6,7 @@ import {TickMath} from "./TickMath.sol";
 /// @title TickBitmap
 /// @notice Two-level bitmap over the 4096 ticks: 16 words of 256 bits, plus a summary word whose bit i is set
 ///         when word i has any bit set. Reading the set ticks costs 1 SLOAD + 1 per non-empty word.
-/// @dev Bits are only ever set, never cleared: each bitmap belongs to one batch, which is never reused.
+/// @dev Batch bitmaps are only ever set (a batch is never reused). Resting-pool bitmaps are also unset when a pool empties.
 library TickBitmap {
     uint256 internal constant NUM_WORDS = 16; // TickMath.NUM_TICKS / 256
 
@@ -24,6 +24,18 @@ library TickBitmap {
         if (word & mask != 0) return;
         if (word == 0) self.summary |= 1 << wordIndex;
         self.words[wordIndex] = word | mask;
+    }
+
+    /// @notice Clears `tick`. Only writes storage when a bit actually changes.
+    function unset(Map storage self, uint256 tick) internal {
+        if (tick > TickMath.MAX_TICK) revert TickMath.TickOutOfRange(tick);
+        uint256 wordIndex = tick >> 8;
+        uint256 mask = 1 << (tick & 0xff);
+        uint256 word = self.words[wordIndex];
+        if (word & mask == 0) return;
+        word &= ~mask;
+        self.words[wordIndex] = word;
+        if (word == 0) self.summary &= ~(1 << wordIndex);
     }
 
     function isSet(Map storage self, uint256 tick) internal view returns (bool) {

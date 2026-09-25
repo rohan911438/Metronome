@@ -14,6 +14,10 @@ contract TickBitmapHarness {
         map.set(tick);
     }
 
+    function unset(uint256 tick) external {
+        map.unset(tick);
+    }
+
     function isSet(uint256 tick) external view returns (bool) {
         return map.isSet(tick);
     }
@@ -61,6 +65,38 @@ contract TickBitmapTest is Test {
         h.set(42);
         assertEq(h.word(0), 1 << 42);
         assertEq(h.summary(), 1);
+    }
+
+    function test_unsetClearsBitAndSummary() public {
+        h.set(300);
+        h.set(301);
+        h.unset(300);
+        assertFalse(h.isSet(300));
+        assertTrue(h.isSet(301));
+        assertEq(h.summary(), 1 << 1);
+        h.unset(301);
+        assertEq(h.word(1), 0);
+        assertEq(h.summary(), 0);
+        h.unset(301); // no-op
+        assertEq(h.summary(), 0);
+    }
+
+    function testFuzz_setUnsetMatchesModel(uint16[16] memory raw, bool[16] memory setIt) public {
+        uint256[16] memory model;
+        for (uint256 i; i < raw.length; ++i) {
+            uint256 t = raw[i] % TickMath.NUM_TICKS;
+            if (setIt[i]) {
+                h.set(t);
+                model[t >> 8] |= 1 << (t & 0xff);
+            } else {
+                h.unset(t);
+                model[t >> 8] &= ~(1 << (t & 0xff));
+            }
+        }
+        for (uint256 i; i < 16; ++i) {
+            assertEq(h.word(i), model[i]);
+            assertEq((h.summary() >> i) & 1 == 1, model[i] != 0);
+        }
     }
 
     function test_revertsOutOfRange() public {

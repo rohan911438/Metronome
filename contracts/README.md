@@ -6,22 +6,25 @@ Foundry project for the Metronome batch-auction exchange. Design: [`../docs/arch
 
 | Path | What |
 |---|---|
-| `src/Metronome.sol` | The market: `placeOrder`, `settle`, `claim`, `claimMany`, `settleAndClaim` |
+| `src/Metronome.sol` | The market: taker and resting orders, `settle`, `claim`, `cancel`, `settleAndClaim` |
 | `src/lib/ClearingLib.sol` | Uniform clearing price: volume-maximising tick, pro-rata only at the marginal tick |
 | `src/lib/TickMath.sol` | Price grid: `price(t) = P_MIN × 1.001^t` over 4096 ticks |
 | `src/lib/TickBitmap.sol` | Two-level bitmap of active ticks, merged across shards at settle |
+| `src/demo/` | `MiniAMM` + `SandwichLab`: the same sandwich on an AMM and on Metronome |
 | `src/interfaces/` | `IMetronome` (integrate here) and the Chainlink feed interface |
 | `src/mocks/` | Test-only tokens and price feed |
 | `script/Deploy.s.sol` | Deploys a market; writes `deployments/<chainId>.json` |
 
 ## Tests
 
-67 tests: unit, fuzz, differential and invariant.
+90 tests: unit, fuzz, differential and invariant.
 
 | Suite | What it proves |
 |---|---|
 | `ClearingLib.t.sol` | **Differential fuzz** against a brute force over all 4096 ticks: same maximal volume, clearing tick achieves it, both sides trade exactly the volume |
-| `MetronomeInvariant.t.sol` | Random orders, settles, claims and fee changes (256 runs × 100 calls): **everyone can always be paid out**, dust stays ≤ 1 wei per order, buyers never receive more base than sellers gave, **no order fills beyond its limit** |
+| `MetronomeInvariant.t.sol` | Random taker and resting orders, settles, claims, cancels and fee changes (256 runs × 100 calls): **everyone can always be paid out** with only wei-level dust left, **no order fills beyond its limit**, pools stay consistent, and **the resting book never crosses** |
+| `Resting.t.sol` | Makers post once and fill across batches, partial claims, pro-rata between makers, price improvement, cancels (including that a cancel can't pull liquidity from a closed batch), dust pools frozen, maker pays no fee |
+| `SandwichLab.t.sol` | 20k MON victim on a 1M pool: AMM victim overpays **4.17%** and the attacker makes **+729 AUSD**; on Metronome the victim pays the clean price and the attacker only loses fees |
 | `Metronome.t.sol` | Every path: escrow, rationing, price improvement, refunds, **sandwich attempt earns nothing**, fees, keeper reward, pausing, broken/stale/deviating oracles |
 | `TickMath.t.sol` | Every tick against a 1e36-precision reference; strictly increasing, 10 bps apart |
 | `TickBitmap.t.sol` | Set/merge semantics, fuzzed |
@@ -30,16 +33,19 @@ Line coverage: libraries 100%, total ~91% (`forge coverage --ir-minimum` under-r
 
 ## Gas
 
-Measured by `test/Gas.t.sol` with Foundry's Ethereum gas schedule. Monad prices cold storage higher: on testnet, place = 248k, settle (1 tick) = 276k, claim = 91k. See [`../docs/network.md`](../docs/network.md).
+Measured by `test/Gas.t.sol` with `--isolate` (each call its own transaction, cold storage, 21k base included), on Foundry's Ethereum gas schedule. Monad charges more for cold storage; earlier live testnet numbers are in [`../docs/network.md`](../docs/network.md).
 
 | Action | Gas |
 |---|---|
-| `placeOrder`, new tick in batch | 127k |
-| `placeOrder`, tick already active | 90k |
-| `claim`, filled order | 42k |
-| `settle`, 1 active tick | 66k |
-| `settle`, 100 active ticks | 441k |
-| `settle`, **200 orders on 2 ticks** | **99k**: cost follows ticks, not orders |
+| `placeOrder`, taker, new tick in batch | 198k |
+| `placeOrder`, taker, tick already active | 135k |
+| `placeOrder`, resting | 250k (once, then it stays) |
+| `claim`, taker | 85k |
+| `claim`, resting (harvest) | 120k |
+| `cancel`, resting | 95k |
+| `settle`, taker vs. 1 pool | 224k |
+| `settle`, 10 / 100 active ticks | 330k / 1.7M |
+| `settle`, **200 orders on 2 ticks** | **201k**: cost follows ticks, not orders |
 
 ## Usage
 
@@ -47,7 +53,7 @@ Measured by `test/Gas.t.sol` with Foundry's Ethereum gas schedule. Monad prices 
 git submodule update --init --recursive   # first time only
 forge build
 forge test                                # full suite, ~2 min (fuzz + invariants)
-forge test --match-contract Gas -vv       # gas numbers
+forge test --match-contract Gas -vv --isolate   # gas numbers
 ```
 
 ### Deploy

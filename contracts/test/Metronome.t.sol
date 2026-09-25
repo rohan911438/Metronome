@@ -54,12 +54,12 @@ contract MetronomeTestBase is Test {
 
     function _buy(address u, uint16 tick, uint128 size) internal returns (bytes32) {
         vm.prank(u);
-        return m.placeOrder(true, tick, size);
+        return m.placeOrder(true, tick, size, false);
     }
 
     function _sell(address u, uint16 tick, uint128 size) internal returns (bytes32) {
         vm.prank(u);
-        return m.placeOrder(false, tick, size);
+        return m.placeOrder(false, tick, size, false);
     }
 
     function _next() internal {
@@ -95,6 +95,8 @@ contract MetronomeTest is MetronomeTestBase {
         assertEq(o.batchId, block.number);
         assertEq(o.tick, T);
         assertTrue(o.isBuy);
+        assertFalse(o.resting);
+        assertFalse(o.closed);
         assertEq(o.size, 10e18);
         assertEq(o.escrow, escrow);
         assertEq(m.nonces(alice), 1);
@@ -122,6 +124,7 @@ contract MetronomeTest is MetronomeTestBase {
             alice,
             block.number,
             true,
+            false,
             T,
             1e18,
             uint128(cost + _fee(cost)),
@@ -133,9 +136,9 @@ contract MetronomeTest is MetronomeTestBase {
     function test_revertsOnBadOrders() public {
         vm.startPrank(alice);
         vm.expectRevert(abi.encodeWithSelector(TickMath.TickOutOfRange.selector, 4096));
-        m.placeOrder(true, 4096, 1e18);
+        m.placeOrder(true, 4096, 1e18, false);
         vm.expectRevert(abi.encodeWithSelector(IMetronome.OrderTooSmall.selector, MIN_SIZE - 1, MIN_SIZE));
-        m.placeOrder(true, T, uint128(MIN_SIZE - 1));
+        m.placeOrder(true, T, uint128(MIN_SIZE - 1), false);
         vm.stopPrank();
     }
 
@@ -160,7 +163,8 @@ contract MetronomeTest is MetronomeTestBase {
     function test_settleEmptyBatch() public {
         uint256 b = block.number;
         _next();
-        IMetronome.BatchResult memory r = m.settle(b);
+        m.settle(b);
+        IMetronome.BatchResult memory r = m.getBatchResult(b);
         assertTrue(r.settled);
         assertEq(r.volume, 0);
     }
@@ -170,8 +174,10 @@ contract MetronomeTest is MetronomeTestBase {
         _buy(alice, T, 1e18);
         _sell(bob, T, 1e18);
         _next();
-        IMetronome.BatchResult memory r1 = m.settle(b);
-        IMetronome.BatchResult memory r2 = m.settle(b);
+        m.settle(b);
+        IMetronome.BatchResult memory r1 = m.getBatchResult(b);
+        m.settle(b);
+        IMetronome.BatchResult memory r2 = m.getBatchResult(b);
         assertEq(abi.encode(r1), abi.encode(r2));
     }
 
@@ -181,7 +187,7 @@ contract MetronomeTest is MetronomeTestBase {
         _buy(bob, T, 2e18);
         _sell(carol, T + 1, 3e18);
         _sell(dave, T - 5, 4e18);
-        (uint16[] memory ticks, uint256[] memory buys, uint256[] memory sells) = m.getBook(block.number);
+        (uint16[] memory ticks, uint256[] memory buys, uint256[] memory sells) = m.getBatchBook(block.number);
         assertEq(ticks.length, 3);
         assertEq(ticks[0], T - 5);
         assertEq(sells[0], 4e18);
@@ -214,7 +220,8 @@ contract MetronomeTest is MetronomeTestBase {
         uint256 bobQuote0 = ausd.balanceOf(bob);
         _next();
 
-        IMetronome.BatchResult memory r = m.settle(b);
+        m.settle(b);
+        IMetronome.BatchResult memory r = m.getBatchResult(b);
         assertEq(r.clearingTick, T);
         assertEq(r.volume, 10e18);
         assertEq(r.rationed, ClearingLib.RATIONED_NONE);
@@ -240,7 +247,8 @@ contract MetronomeTest is MetronomeTestBase {
         uint256 escrow = m.getOrder(buyId).escrow;
         _next();
 
-        IMetronome.BatchResult memory r = m.settle(b);
+        m.settle(b);
+        IMetronome.BatchResult memory r = m.getBatchResult(b);
         assertGe(r.clearingTick, T);
         assertLe(r.clearingTick, T + 50);
 
@@ -274,7 +282,8 @@ contract MetronomeTest is MetronomeTestBase {
         bytes32 c = _buy(carol, T, 6e18);
         bytes32 s = _sell(bob, T, 8e18);
         _next();
-        IMetronome.BatchResult memory r = m.settle(b);
+        m.settle(b);
+        IMetronome.BatchResult memory r = m.getBatchResult(b);
         assertEq(r.rationed, ClearingLib.RATIONED_BUY);
         (uint256 aBase,) = m.claim(a);
         (uint256 cBase,) = m.claim(c);
@@ -293,7 +302,8 @@ contract MetronomeTest is MetronomeTestBase {
         bytes32 s2 = _sell(carol, T, 5e18 + 3);
         bytes32 s3 = _sell(dave, T, 3e18 + 7);
         _next();
-        IMetronome.BatchResult memory r = m.settle(b);
+        m.settle(b);
+        IMetronome.BatchResult memory r = m.getBatchResult(b);
         assertEq(r.rationed, ClearingLib.RATIONED_SELL);
         m.claim(buyId);
         m.claim(s1);
@@ -325,7 +335,7 @@ contract MetronomeTest is MetronomeTestBase {
         bytes32 id = _buy(alice, T, 1e18);
         _next();
         m.claim(id);
-        vm.expectRevert(abi.encodeWithSelector(IMetronome.AlreadyClaimed.selector, id));
+        vm.expectRevert(abi.encodeWithSelector(IMetronome.AlreadyClosed.selector, id));
         m.claim(id);
     }
 
@@ -344,18 +354,18 @@ contract MetronomeTest is MetronomeTestBase {
         (ids[0], ids[1], ids[2]) = (buyId, sellId, bytes32(uint256(123)));
         vm.prank(keeper);
         m.settleAndClaim(b, ids);
-        assertTrue(m.getOrder(sellId).claimed);
+        assertTrue(m.getOrder(sellId).closed);
         _assertSolvent();
     }
 
     function test_previewMatchesClaim() public {
         bytes32 buyId = _buy(alice, T + 3, 3e18);
         _sell(bob, T, 2e18);
-        (,,, bool ready) = m.previewClaim(buyId);
+        (,, bool ready) = m.previewClaim(buyId);
         assertFalse(ready);
         _next();
         m.settle(block.number - 1);
-        (uint256 pBase, uint256 pQuote,, bool ready2) = m.previewClaim(buyId);
+        (uint256 pBase, uint256 pQuote, bool ready2) = m.previewClaim(buyId);
         assertTrue(ready2);
         (uint256 cBase, uint256 cQuote) = m.claim(buyId);
         assertEq(pBase, cBase);
@@ -375,7 +385,8 @@ contract MetronomeTest is MetronomeTestBase {
         bytes32 victim = _buy(alice, T + 100, 5e18);
         bytes32 atkSell = _sell(carol, T - 100, 10e18);
         _next();
-        IMetronome.BatchResult memory r = m.settle(b);
+        m.settle(b);
+        IMetronome.BatchResult memory r = m.getBatchResult(b);
 
         uint256 carolQuote0 = ausd.balanceOf(carol) + m.getOrder(atkBuy).escrow;
         uint256 carolBase0 = wmon.balanceOf(carol) + m.getOrder(atkSell).escrow;
@@ -456,7 +467,7 @@ contract MetronomeTest is MetronomeTestBase {
         m.claimMany(ids);
         assertEq(wmon.balanceOf(alice), 1_000_000e18 + 2e18);
         assertEq(wmon.balanceOf(carol), 1_000_000e18 + 1e18);
-        assertTrue(m.getOrder(s).claimed);
+        assertTrue(m.getOrder(s).closed);
         _assertSolvent();
     }
 
@@ -505,7 +516,8 @@ contract MetronomeTest is MetronomeTestBase {
         _buy(alice, T, 1e18);
         _sell(bob, T, 1e18);
         _next();
-        IMetronome.BatchResult memory r = m.settle(b);
+        m.settle(b);
+        IMetronome.BatchResult memory r = m.getBatchResult(b);
         assertFalse(r.voided);
         assertEq(r.volume, 1e18);
     }
@@ -517,7 +529,8 @@ contract MetronomeTest is MetronomeTestBase {
         bytes32 s = _sell(bob, T, 1e18);
         uint256 aliceQuote = ausd.balanceOf(alice) + m.getOrder(a).escrow;
         _next();
-        IMetronome.BatchResult memory r = m.settle(b);
+        m.settle(b);
+        IMetronome.BatchResult memory r = m.getBatchResult(b);
         assertTrue(r.voided);
         assertEq(r.volume, 0);
         m.claim(a);
@@ -534,7 +547,8 @@ contract MetronomeTest is MetronomeTestBase {
         _buy(alice, T, 1e18);
         _sell(bob, T, 1e18);
         _next();
-        assertTrue(m.settle(b).voided);
+        m.settle(b);
+        assertTrue(m.getBatchResult(b).voided);
     }
 
     function test_revertingOracleVoidsInsteadOfBlocking() public {
@@ -545,7 +559,8 @@ contract MetronomeTest is MetronomeTestBase {
         bytes32 a = _buy(alice, T, 1e18);
         _sell(bob, T, 1e18);
         _next();
-        assertTrue(m.settle(b).voided);
+        m.settle(b);
+        assertTrue(m.getBatchResult(b).voided);
         m.claim(a); // funds still come back
     }
 

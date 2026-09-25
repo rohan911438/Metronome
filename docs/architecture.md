@@ -43,10 +43,17 @@ There is **no backend server and no indexer**. The frontend reads contract state
 | **Tick** | A discrete price level. `price(t) = P_MIN × 1.001^t`, so each tick is 10 bps apart |
 | **Tick range** | `t ∈ [0, 4095]`, fixed at deploy. 1.001^4095 ≈ 60×, so the range covers P_MIN to about 60 × P_MIN |
 | **Shard** | Each batch's order book is split into K copies. A user always writes to shard `uint160(owner) % K` |
+| **Taker order** | Lives for one batch. Whatever doesn't fill is refunded at claim |
+| **Resting order** | A maker order. It joins the **pool** for its (side, tick) and stays in every batch until filled or cancelled. Makers post once, not every block |
+| **Pool** | All resting orders at one (side, tick), treated as one big order. Orders own **shares** of it |
 | **Clearing tick t\*** | The single price every filled order in a batch trades at |
 | **Marginal tick** | The only tick where orders may be partly filled (pro-rata) |
 
 Base = WMON (18 decimals), quote = AUSD (6 decimals). The contract only handles ERC-20s. The frontend wraps MON into WMON when needed.
+
+### Why resting orders
+
+Taker-only batches looked simple, but on testnet (Sep 25: 0.30 s blocks, ~102 gwei, ~250k gas per order) a market maker re-posting a 10-level ladder every block would burn **~0.8 MON per second**. With pools, a maker posts once (~2.5M gas for 10 levels) and re-quotes only when the price moves.
 
 ## 3. Contracts
 
@@ -55,128 +62,105 @@ Base = WMON (18 decimals), quote = AUSD (6 decimals). The contract only handles 
 ```
 contracts/
   src/
-    Metronome.sol          core market (place, settle, claim)
+    Metronome.sol          core market (place, settle, claim, cancel)
     lib/TickMath.sol       price(t) via binary exponentiation of 1.001
-    lib/TickBitmap.sol     two-level bitmap of active ticks
+    lib/TickBitmap.sol     two-level bitmap of active ticks (set / unset / merge)
     lib/ClearingLib.sol    pure clearing algorithm (easy to fuzz on its own)
     interfaces/IMetronome.sol
     demo/MiniAMM.sol       x*y=k pool, only for the sandwich demo
-    demo/SandwichLab.sol   runs the same sandwich on both venues in one tx
+    demo/SandwichLab.sol   runs the same sandwich on both venues
     mocks/MockERC20.sol, MockAggregator.sol
   test/  unit, fuzz, invariant, differential
-  script/Deploy.s.sol, SeedLiquidity.s.sol
+  script/Deploy.s.sol
 ```
 
 ### 3.2 Storage
 
 ```solidity
-struct Order {                 // 2 slots
-    address owner;             // 160
-    uint64  batchId;           // 64
-    uint16  tick;              // 16
-    bool    isBuy;             //  8
-    bool    claimed;           //  8
-    uint128 size;              // base units
-    uint128 escrow;            // quote (buy) or base (sell) that was locked
+struct Order {                  // 2 slots
+    address owner; uint56 batchId; uint16 tick; bool isBuy; bool resting; bool closed;
+    uint128 size;               // base units
+    uint128 escrow;             // quote (buy) or base (sell) still locked
 }
 
-struct Level { uint128 buy; uint128 sell; }  // 1 slot per tick, base units
-
-struct Book {                  // one per (batch, shard)
-    Level[4096] levels;        // contiguous slots, so nearby ticks share a Monad storage page
-    TickBitmap.Map active;     // 16 words + 1 summary word
+struct Book {                   // one per (batch, shard)
+    TickBitmap.Map active;      // 16 words + 1 summary word
+    Level[4096] takers;         // {uint128 buy; uint128 sell} per tick: one-batch orders
+    Level[4096] resting;        // resting orders placed in this batch; they join their pool at settle
 }
 
-struct BatchResult {           // 2 slots
-    bool    settled;
-    uint16  clearingTick;
-    uint8   rationed;          // 0 none, 1 buyers, 2 sellers
-    uint128 volume;            // base units traded
-    uint128 fillNum;           // pro-rata fraction for the marginal tick
-    uint128 fillDen;
-}
+struct Pool { uint32 gen; uint128 remaining; uint256 shares; }  // current generation, per (side, tick)
+struct PoolAcc { uint256 accA; uint256 accB; bool frozen; uint128 frozenRemaining; uint256 frozenShares; }
+struct Join { uint32 gen; uint128 groupSize; uint256 minted; uint256 accA; uint256 accB; }  // per (batch, side, tick)
 
-mapping(uint256 batchId => mapping(uint8 shard => Book)) books;
-mapping(uint256 batchId => BatchResult) results;
-mapping(bytes32 orderId => Order) orders;
-mapping(address => uint64) nonces;
+Pool[4096] buyPools; Pool[4096] sellPools;              // fixed arrays: page-friendly
+TickBitmap.Map buyPoolTicks, sellPoolTicks;             // which pools are live
+mapping(shard => mapping(batch => uint256)) shardNext;  // per-shard chain of batches with orders
 ```
 
-**Parallel-friendly rules.** On Monad, transactions that write the same slot conflict and get re-executed. So no transaction writes a global value:
+**Parallel-friendly rules.** On Monad, transactions that write the same slot conflict and get re-executed. So `placeOrder` writes no global value:
 - `orderId = keccak256(owner, nonce[owner])`: a per-user nonce, **not** a global counter
-- Buckets and bitmaps are per shard, so two users in different shards never touch the same slot
-- Nothing is written into `results[B]` during placement. Only `settle` writes it
+- Books and bitmaps are per shard, so two users in different shards never touch the same slot
+- Resting orders go into the batch's shard book too; they only touch the global pools later, at settle
+- The batch chain used to settle in order is **per shard**, appended by the shard's first order in a batch
+- The reentrancy guard uses **transient** storage (OpenZeppelin's default guard writes one shared slot on every call)
 
 ### 3.3 External functions
 
 | Function | Who | What it does |
 |---|---|---|
-| `placeOrder(bool isBuy, uint16 tick, uint128 size) → orderId` | anyone | Pulls escrow and adds `size` to `books[block.number][shard].levels[tick]`. Sets the bitmap bit. A buy escrows `ceil(size × price(tick) × (1 + fee))` quote, so the fee is always covered; a sell escrows `size` base |
-| `settle(uint256 batchId)` | anyone, once `block.number > batchId` | Runs the clearing (below) and writes `results[batchId]`. Idempotent. If the batch is empty, it records `volume = 0` |
-| `claim(bytes32 orderId)` | anyone; funds always go to `order.owner` | Calls `settle` first if needed, computes the fill, pays base/quote and refunds leftover escrow, then marks it claimed |
-| `claimMany(bytes32[] ids)` | keeper / CRE | Loops `claim`. This is how users get funds with no second tap |
-| `settleAndClaim(batchId, ids)` | keeper / CRE | Both in one tx |
-| views: `quoteBuyEscrow`, `previewFill(orderId)`, `getLevels(batchId, from, to)`, `price(tick)` | frontend | |
+| `placeOrder(isBuy, tick, size, resting) → orderId` | anyone | Pulls escrow into the current batch's shard book. Taker buy escrows `ceil(size × price(tick)) + fee`; resting buy escrows `ceil(size × price(tick))` plus 1000 raw units of buffer (makers pay no fee); a sell escrows `size` base |
+| `settle(batchId)` | anyone, once `block.number > batchId` | Settles **every pending batch ≤ batchId, in order** (pools carry state from one batch to the next). Idempotent |
+| `claim(orderId)` | anyone; funds always go to `order.owner` | Taker: pays the fill, refunds the rest, closes. Resting: pays what its pool earned since the last claim; closes once the pool generation is used up |
+| `claimMany(ids)`, `settleAndClaim(batchId, ids)` | keeper / CRE | How users get funds with no second tap |
+| `cancel(orderId)` | owner, resting orders only | Pays fills so far and returns the unfilled part. First settles every earlier batch, so a maker can never pull liquidity out of a batch that already closed |
+| views: `price`, `quoteBuyEscrow`, `restingBuyEscrow`, `previewClaim`, `getBatchBook`, `getRestingBook`, `getPool`, `nextPendingBatch` | frontend, bots | |
 
-There is **no cancel**: an order only lives for one block, and whatever doesn't fill is refunded at claim. There are no resting orders in the MVP; the MM bot re-quotes every block.
+Admin (owner, hackathon only): `pause()` (blocks new orders only; claims and cancels always work), `setOracle`, `setFees`, `withdrawFees`. The shard count K and the tick range are immutable.
 
-Admin (owner, hackathon only): `pause()`, `setOracle(addr, maxDeviationBps, maxStaleness)`, `setFee(bps)`. The shard count K and the tick range are immutable.
+### 3.4 Settling a batch
 
-### 3.4 Clearing algorithm (`ClearingLib`)
+1. **Joins.** Resting orders placed in this batch join their pools *before* clearing, so they can trade in the batch they were placed in. A pool with `S` shares and `R` remaining mints `G × S / R` shares for a group of size `G` (1:1 for an empty pool). The batch records the pool's accumulators at join time.
+2. **Clear.** Inputs per tick = taker size (merged across shards) + pool `remaining`. `ClearingLib` finds `t*` (below).
+3. **Fill pools.** Each pool that traded is filled like one order of size `remaining`, and its per-share accumulators grow: sell pools `accA += proceeds / S`; buy pools `accA += base / S` and `accB += quote spent / S`.
+4. **Freeze** a pool that drops below the minimum order size (or whose shares outgrow its size by 10¹²): its generation ends, the dust is no longer offered, and holders withdraw their share on their next claim.
 
-Inputs come from summing the K shards over the ticks whose bitmap bit is set:
-- `D(t)` = total buy size with limit ≥ t (falls as t rises)
-- `S(t)` = total sell size with limit ≤ t (rises as t rises)
+Clearing (`ClearingLib`), with `D(t)` = buy size with limit ≥ t and `S(t)` = sell size with limit ≤ t:
+1. Let `t0` = the lowest tick where `S(t0) ≥ D(t0)`. If there is none, `t0 = 4096` with `D = 0`.
+2. If `D(t0) ≥ S(t0 − 1)`: **t\* = t0**, `V = D(t0)`, sellers at t0 get `(V − S(t0−1)) / sellAt(t0)`. Otherwise **t\* = t0 − 1**, `V = S(t0−1)`, buyers at t0−1 get `(V − D(t0)) / buyAt(t0−1)`.
+3. **Price guard:** if an oracle is set and the feed is broken, stale, or `|price(t*) − oracle| > maxDeviation`, the batch is voided: nothing trades, everyone is refunded.
 
-Steps:
-1. OR the shard bitmaps together, then walk the active ticks in ascending order to build the running totals.
-2. Let `t0` = the lowest tick where `S(t0) ≥ D(t0)`. If there is none, `t0 = 4096` with `D = 0`.
-3. Choose between `t0` and `t0 − 1`:
-   - If `D(t0) ≥ S(t0 − 1)`: **t\* = t0**, `V = D(t0)`. All buyers at ≥ t0 fill fully. Sellers below t0 fill fully. Sellers exactly at t0 get `(V − S(t0−1)) / sellAt(t0)`.
-   - Else: **t\* = t0 − 1**, `V = S(t0−1)`. All sellers at ≤ t0−1 fill fully. Buyers above t0−1 fill fully. Buyers exactly at t0−1 get `(V − D(t0)) / buyAt(t0−1)`.
-4. **Price guard:** if an oracle is set and `|price(t*) − oracle| > maxDeviation`, or the feed is stale, the batch is recorded as `volume = 0` and everyone is refunded.
-5. Store `t*`, `V`, the rationed side and `fillNum/fillDen`.
+This picks the tick with the most volume, and only the marginal tick is ever rationed (differential fuzz against a brute force, §6). After a batch settles, the resting book can't cross (invariant-tested).
 
-This picks the tick with the most volume, and only the marginal tick is ever rationed. Both properties are checked by a differential fuzz test against a brute-force version (§6).
-
-Cost is O(active ticks × K), not O(orders). The summary word means empty regions of the bitmap cost nothing.
+Cost is O(active ticks × K + live pools), never O(orders).
 
 ### 3.5 Claim math
 
-For an order at tick `t` in a batch with result `(t*, V, rationed, num/den)`:
+A taker order's fill is `size`, `size × num / den` at the rationed marginal tick, or 0. A resting order owns `shares = minted × size / groupSize` and earns `shares × (acc_now − acc_last)`.
 
-| Order | Fill in base units |
-|---|---|
-| buy, `t > t*` / sell, `t < t*` | `size` |
-| at `t == t*` on the rationed side | `size × num / den` (exact fraction, rounded as below) |
-| at `t == t*` on the other side | `size` |
-| worse than `t*` | 0 |
-
-Each order's exact fill is the fraction `size × num / den` (or `size`, or 0). Its exact quote value is `fill × price(t*)`, computed from that **exact** fraction, not from a rounded base amount.
-
-**Rounding rule: what a user gives is rounded up, and what a user receives is rounded down, each from their exact share.**
+**Rounding rule: what a user gives is rounded up, and what a user receives is rounded down, each from their exact share.** Pools follow the same rule as one big order.
 
 | | Receives (rounded down) | Gives (rounded up) |
 |---|---|---|
-| Buyer | `floor(fill)` base | `ceil(fill × price)` quote + fee, from escrow. The rest of escrow is refunded |
-| Seller | `floor(fill × price)` quote − fee | `ceil(fill)` base, from escrow. The rest of escrow is refunded |
+| Buyer | `floor(fill)` base | `ceil(fill × price)` quote (+ fee for takers), from escrow. The rest is refunded |
+| Seller | `floor(fill × price)` quote (− fee for takers) | `ceil(fill)` base, from escrow. The rest is refunded |
 
-Why this matters: rounding every order's *base* fill down and then pricing that rounded amount would let a batch owe a few wei more than it holds, once per rationed order. With this rule, the sum of what a batch pays out is at most its exact totals, and the sum of what it takes in is at least those totals. So **the contract can never owe more than it holds**, and leftover dust only ever grows. The invariant tests check this.
+Quote is priced from the **exact** fractional fill, not from a rounded base amount. Rounding every order's base down and then pricing it would let a batch owe a few wei more than it holds. With this rule **the contract can never owe more than it holds**, and leftover dust only ever grows. The invariant tests check this with taker and resting orders, cancels and fee changes mixed together.
 
 ### 3.6 Fees and keeper reward
 
-- Fee: **5 bps on the quote amount of each fill**, charged to both sides and accrued in the contract.
-- The fee pool pays the settler a fixed reward (`settleReward`, e.g. 0.01 AUSD) when a batch with volume is settled. The rest goes to the treasury (owner).
-- On testnet the fee can be 0. It's kept in the design because the Grand Champion pitch needs a business model.
+- **Takers pay 5 bps** on the quote amount of each fill. **Makers (resting orders) pay nothing**: that's the incentive to provide liquidity, and it means a fee change can never outgrow what a maker escrowed.
+- A taker buy's fee is capped by its escrow, so a fee increase after placement can't lock funds.
+- The fee pool pays the settler a fixed reward (`settleReward`) when a batch with volume is settled. The rest goes to the treasury (owner).
 
 ### 3.7 Monad-specific engineering (the judge story)
 
 | Topic | What we do | How we prove it |
 |---|---|---|
-| Parallel execution | K shards, per-user nonces, no global writes in `placeOrder` | Benchmark K=1 vs K=16 (§5.4) |
-| Storage pages (128 slots) | `Level[4096]` is a fixed array, so ticks next to each other are on the same page and settle reads fewer pages | Gas per settle vs. number of active ticks |
-| Gas is charged on the **gas limit**, not gas used | Frontend and bots set tight limits from `estimateGas` + 10% | Shown in the write-up |
-| 300ms blocks | One block = one batch | Live visualizer |
+| Parallel execution | K shards, per-user nonces, per-shard batch chains, transient reentrancy guard: `placeOrder` writes no global slot | Benchmark K=1 vs K=16 (§5.6) |
+| Storage pages (128 slots) | Books and pools are fixed arrays, so neighbouring ticks share a page | Gas per settle vs. number of active ticks |
+| Gas is charged on the **gas limit**, not gas used | Frontend and bots set tight limits from `estimateGas` plus a margin | Shown in the write-up |
+| 300ms blocks | One block = one batch; makers rest, so every batch has liquidity | Live visualizer |
 
 ## 4. Offchain components
 
@@ -200,7 +184,7 @@ web/          Next.js PWA
 
 ### 4.2 Market-maker bot
 - Reference price: the Chainlink feed if present, otherwise the last clearing price, otherwise a configured start price.
-- Every block: posts a ladder of 5 buy and 5 sell orders around the reference (±10–50 bps), sized by inventory.
+- Posts a ladder of **resting** orders (e.g. 5 bids and 5 asks, ±10–50 bps) once, and re-quotes only when the reference price moves past a threshold.
 - Uses 2–3 wallets so its orders land in different shards.
 - Stops quoting if one side's inventory falls under a threshold.
 
@@ -289,4 +273,4 @@ Target: 100% line coverage on `Metronome.sol` and the libs.
 - Owner can pause placing orders. **Claims always keep working**, so funds can't get stuck.
 
 ## 8. Explicitly out of scope
-Orders that last more than one batch, cancel, multiple markets, a router, an indexer, native-token escrow, and the Arc deployment (parked).
+Multiple markets, a router, an indexer, native-token escrow, and the Arc deployment (parked).

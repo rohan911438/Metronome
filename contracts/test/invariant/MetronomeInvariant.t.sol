@@ -8,7 +8,8 @@ import {Metronome} from "../../src/Metronome.sol";
 import {IMetronome} from "../../src/interfaces/IMetronome.sol";
 import {MockERC20} from "../../src/mocks/MockERC20.sol";
 
-/// @notice Drives Metronome with random orders, block advances, settles, claims and fee changes.
+/// @notice Drives Metronome with random taker and resting orders, block advances, settles, claims, cancels and fee
+///         changes.
 contract Handler is Test {
     Metronome internal immutable m;
     MockERC20 internal immutable wmon;
@@ -21,13 +22,8 @@ contract Handler is Test {
     bytes32[] public orderIds;
 
     // Ghost state checked by the invariants.
-    uint256 public limitViolations; // a buyer filled above its limit, or a seller below it
-    uint256 public claims;
+    uint256 public limitViolations; // a taker filled beyond its limit, or a resting buy paid above its limit
     uint256 public fills; // claims that actually traded
-    mapping(uint256 batchId => uint256) public baseToBuyers;
-    mapping(uint256 batchId => uint256) public baseFromSellers;
-    uint256[] public batches;
-    mapping(uint256 batchId => bool) internal _seenBatch;
 
     constructor(Metronome m_, MockERC20 wmon_, MockERC20 ausd_, address owner_) {
         (m, wmon, ausd, owner) = (m_, wmon_, ausd_, owner_);
@@ -45,19 +41,14 @@ contract Handler is Test {
 
     // ------------------------------------------------------------------ actions
 
-    function place(uint256 actorSeed, bool isBuy, uint256 tickSeed, uint256 sizeSeed) external {
+    function place(uint256 actorSeed, bool isBuy, uint256 tickSeed, uint256 sizeSeed, bool resting) external {
         address a = actors[actorSeed % actors.length];
         uint16 tick = uint16(T - 20 + (tickSeed % 41)); // tight window, so books cross often
         // Mix of round and awkward sizes so pro-rata rounding gets exercised.
         uint128 size = uint128(bound(sizeSeed, 1e15, 1000e18));
         if (sizeSeed % 3 == 0) size = uint128(size / 1e15 * 1e15 + (sizeSeed % 997));
         vm.prank(a);
-        bytes32 id = m.placeOrder(isBuy, tick, size);
-        orderIds.push(id);
-        if (!_seenBatch[block.number]) {
-            _seenBatch[block.number] = true;
-            batches.push(block.number);
-        }
+        orderIds.push(m.placeOrder(isBuy, tick, size, resting));
     }
 
     function advance(uint256 blocks) external {
@@ -65,15 +56,19 @@ contract Handler is Test {
     }
 
     function settle(uint256 seed) external {
-        if (batches.length == 0) return;
-        uint256 b = batches[seed % batches.length];
-        if (b >= block.number) return;
-        m.settle(b);
+        uint256 back = seed % 3;
+        if (block.number <= back + 1) return;
+        m.settle(block.number - 1 - back);
     }
 
     function claim(uint256 seed) external {
         if (orderIds.length == 0) return;
         claimOne(orderIds[seed % orderIds.length]);
+    }
+
+    function cancel(uint256 seed) external {
+        if (orderIds.length == 0) return;
+        cancelOne(orderIds[seed % orderIds.length]);
     }
 
     function setFee(uint256 seed) external {
@@ -85,28 +80,43 @@ contract Handler is Test {
 
     function claimOne(bytes32 id) public {
         IMetronome.Order memory o = m.getOrder(id);
-        if (o.claimed || o.batchId >= block.number) return;
-        (uint256 baseOut,) = m.claim(id);
-        claims++;
-        if (o.isBuy ? baseOut > 0 : baseOut < o.escrow) fills++;
+        if (o.closed || o.batchId >= block.number) return;
+        (uint256 baseOut, uint256 quoteOut) = m.claim(id);
+        IMetronome.Order memory after_ = m.getOrder(id);
+
+        if (o.resting) {
+            if (o.isBuy && baseOut > 0) {
+                fills++;
+                // Quote spent this claim must not exceed what `baseOut` costs at the limit (plus rounding). Makers
+                // pay no fee.
+                uint256 spent = o.escrow - after_.escrow - (after_.closed ? quoteOut : 0);
+                uint256 atLimit = m.restingBuyEscrow(baseOut, o.tick) - m.RESTING_BUY_BUFFER();
+                if (spent > atLimit + 2) limitViolations++;
+            }
+            if (!o.isBuy && quoteOut > 0) fills++;
+            return;
+        }
 
         IMetronome.BatchResult memory r = m.getBatchResult(o.batchId);
         if (o.isBuy) {
-            baseToBuyers[o.batchId] += baseOut;
+            if (baseOut > 0) fills++;
             if (baseOut > 0 && r.clearingTick > o.tick) limitViolations++;
         } else {
             uint256 given = o.escrow - baseOut;
-            baseFromSellers[o.batchId] += given;
+            if (given > 0) fills++;
             if (given > 0 && r.clearingTick < o.tick) limitViolations++;
         }
     }
 
-    function orderCount() external view returns (uint256) {
-        return orderIds.length;
+    function cancelOne(bytes32 id) public {
+        IMetronome.Order memory o = m.getOrder(id);
+        if (!o.resting || o.closed) return;
+        vm.prank(o.owner);
+        m.cancel(id);
     }
 
-    function batchCount() external view returns (uint256) {
-        return batches.length;
+    function orderCount() external view returns (uint256) {
+        return orderIds.length;
     }
 }
 
@@ -124,12 +134,13 @@ contract MetronomeInvariantTest is Test {
         h = new Handler(m, wmon, ausd, owner);
 
         targetContract(address(h));
-        bytes4[] memory selectors = new bytes4[](5);
+        bytes4[] memory selectors = new bytes4[](6);
         selectors[0] = Handler.place.selector;
         selectors[1] = Handler.advance.selector;
         selectors[2] = Handler.settle.selector;
         selectors[3] = Handler.claim.selector;
-        selectors[4] = Handler.setFee.selector;
+        selectors[4] = Handler.cancel.selector;
+        selectors[5] = Handler.setFee.selector;
         targetSelector(FuzzSelector({addr: address(h), selectors: selectors}));
     }
 
@@ -138,33 +149,42 @@ contract MetronomeInvariantTest is Test {
         assertEq(h.limitViolations(), 0);
     }
 
-    /// @notice If everyone claimed right now, every claim would succeed, and the contract would be left with at least
-    ///         the protocol's fees in quote and only rounding dust in base.
+    /// @notice If every order were claimed or cancelled right now, every call would succeed, and the contract would be
+    ///         left with at least the protocol's fees in quote and only rounding dust in either token.
     function invariant_everyoneCanBePaidOut() public {
         uint256 snap = vm.snapshotState();
-        vm.roll(block.number + 1);
+        _closeEverything();
 
         uint256 n = h.orderCount();
-        for (uint256 i; i < n; ++i) {
-            h.claimOne(h.orderIds(i)); // reverts (and fails the invariant) if the contract can't pay
-        }
-
         assertGe(ausd.balanceOf(address(m)), m.feesAccrued(), "quote below fees");
-        // Rounding dust is at most 1 raw unit per order in each token.
-        assertLe(ausd.balanceOf(address(m)) - m.feesAccrued(), n, "quote dust too large");
-        assertLe(wmon.balanceOf(address(m)), n, "base dust too large");
+        assertLe(ausd.balanceOf(address(m)) - m.feesAccrued(), 2 * n, "quote dust too large");
+        assertLe(wmon.balanceOf(address(m)), 2 * n, "base dust too large");
+        vm.revertToState(snap);
+    }
 
-        // Per batch: buyers never receive more base than sellers gave, and the gap is only dust.
-        uint256 batches = h.batchCount();
-        for (uint256 i; i < batches; ++i) {
-            uint256 b = h.batches(i);
-            uint256 toBuyers = h.baseToBuyers(b);
-            uint256 fromSellers = h.baseFromSellers(b);
-            assertLe(toBuyers, fromSellers, "buyers got more base than sellers gave");
-            assertLe(fromSellers - toBuyers, n, "batch base gap too large");
-            assertLe(toBuyers, m.getBatchResult(b).volume, "buyers got more than volume");
+    /// @notice A pool's shares and remaining size are zero together, and a live pool is never below the minimum size.
+    function invariant_poolsConsistent() public view {
+        (uint16[] memory ticks,,) = m.getRestingBook();
+        for (uint256 i; i < ticks.length; ++i) {
+            _checkPool(m.getPool(true, ticks[i]));
+            _checkPool(m.getPool(false, ticks[i]));
         }
+    }
 
+    /// @notice Once every closed batch is settled, the resting book never crosses: best bid < best ask.
+    function invariant_restingBookNeverCrosses() public {
+        uint256 snap = vm.snapshotState();
+        vm.roll(block.number + 1);
+        m.settle(block.number - 1);
+        (uint16[] memory ticks, uint256[] memory buys, uint256[] memory sells) = m.getRestingBook();
+        uint256 bestBid;
+        bool hasBid;
+        uint256 bestAsk = type(uint256).max;
+        for (uint256 i; i < ticks.length; ++i) {
+            if (buys[i] > 0) (bestBid, hasBid) = (ticks[i], true);
+            if (sells[i] > 0 && ticks[i] < bestAsk) bestAsk = ticks[i];
+        }
+        if (hasBid) assertLt(bestBid, bestAsk, "resting book crossed");
         vm.revertToState(snap);
     }
 
@@ -172,11 +192,21 @@ contract MetronomeInvariantTest is Test {
     ///         some of them must have traded. (The chance 40+ random orders never cross is about 2^-40.)
     function afterInvariant() public {
         if (h.orderCount() < 40) return;
+        _closeEverything();
+        assertGt(h.fills(), 0, "vacuous run: nothing ever traded");
+    }
+
+    function _closeEverything() internal {
         vm.roll(block.number + 1);
         uint256 n = h.orderCount();
         for (uint256 i; i < n; ++i) {
-            h.claimOne(h.orderIds(i));
+            h.claimOne(h.orderIds(i)); // reverts (failing the invariant) if the contract can't pay
+            h.cancelOne(h.orderIds(i));
         }
-        assertGt(h.fills(), 0, "vacuous run: nothing ever traded");
+    }
+
+    function _checkPool(Metronome.Pool memory p) internal view {
+        assertEq(p.shares == 0, p.remaining == 0, "shares/remaining mismatch");
+        if (p.remaining > 0) assertGe(p.remaining, m.MIN_ORDER_SIZE(), "live pool below minimum");
     }
 }

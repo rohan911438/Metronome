@@ -11,12 +11,12 @@ contract GasTest is MetronomeTestBase {
         _next();
         vm.prank(alice);
         uint256 g = gasleft();
-        m.placeOrder(true, T, 1e18);
+        m.placeOrder(true, T, 1e18, false);
         console.log("placeOrder (new tick in batch):     ", g - gasleft());
 
         vm.prank(bob);
         g = gasleft();
-        m.placeOrder(true, T, 1e18);
+        m.placeOrder(true, T, 1e18, false);
         console.log("placeOrder (tick already active):   ", g - gasleft());
     }
 
@@ -38,7 +38,7 @@ contract GasTest is MetronomeTestBase {
                 // Alternate buyers and sellers across distinct ticks so every order adds an active tick.
                 address u = i % 2 == 0 ? alice : bob;
                 vm.prank(u);
-                m.placeOrder(i % 2 == 0, uint16(T - 200 + i), 1e18);
+                m.placeOrder(i % 2 == 0, uint16(T - 200 + i), 1e18, false);
             }
             _next();
             uint256 g = gasleft();
@@ -58,5 +58,31 @@ contract GasTest is MetronomeTestBase {
         uint256 g = gasleft();
         m.settle(b);
         console.log("settle, 200 orders on 2 ticks:      ", g - gasleft());
+    }
+
+    function test_gas_restingLifecycle() public {
+        vm.prank(bob);
+        uint256 g = gasleft();
+        bytes32 ask = m.placeOrder(false, T, 10e18, true);
+        console.log("placeOrder (resting):               ", g - gasleft());
+        _next();
+        g = gasleft();
+        m.settle(block.number - 1);
+        console.log("settle (1 pool joins):              ", g - gasleft());
+
+        _buy(alice, T, 4e18);
+        _next();
+        g = gasleft();
+        m.settle(block.number - 1);
+        console.log("settle (taker vs 1 pool):           ", g - gasleft());
+
+        g = gasleft();
+        m.claim(ask);
+        console.log("claim (resting, partial fill):      ", g - gasleft());
+
+        vm.prank(bob);
+        g = gasleft();
+        m.cancel(ask);
+        console.log("cancel (resting):                   ", g - gasleft());
     }
 }

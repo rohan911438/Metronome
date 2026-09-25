@@ -34,11 +34,17 @@ Solo build. Design: [`architecture.md`](architecture.md). Submission target **Oc
 - [x] Oct 1: invariant suite, gas numbers, `Deploy.s.sol` (dry-run against testnet passes)
 - [x] **Deploy to testnet** → M1 ✅ (Sep 25, see `docs/network.md`)
 
+### Phase 2b — Resting orders (added Sep 25)
+- [x] Found that one-batch orders make market making cost ~0.8 MON/s on testnet; chose resting orders (per-price pools with share accumulators)
+- [x] Contract, 16 resting unit tests, invariants extended (pools consistent, book never crosses); makers pay no fee
+- [ ] Redeploy to testnet with the new API
+
 ### Phase 3 — Bots and demo contracts (Oct 2–3)
 - [ ] pnpm workspace, shared `config.ts` (addresses, ABIs via `forge inspect`)
 - [ ] Keeper: block watcher → `settleAndClaim`
 - [ ] MM bot: ladder quoting, 3 wallets, inventory limits
-- [ ] `MiniAMM.sol` + `SandwichLab.sol` + script → M2
+- [x] `MiniAMM.sol` + `SandwichLab.sol` (tests: AMM victim −4.17%, Metronome victim 0)
+- [ ] Sandwich script against testnet → M2
 
 ### Phase 4 — Frontend + Privy + Agora (Oct 4–7)
 - [ ] Oct 4: Next.js scaffold, wagmi/viem, Privy provider, Monad chain config, Trade page ticket

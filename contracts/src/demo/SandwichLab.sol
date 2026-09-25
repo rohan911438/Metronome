@@ -82,10 +82,10 @@ contract SandwichLab {
         _pull(QUOTE, METRONOME.quoteBuyEscrow(attackerBase, makerTick + SLIPPAGE_TICKS));
         _pull(QUOTE, METRONOME.quoteBuyEscrow(victimBase, makerTick + SLIPPAGE_TICKS));
 
-        r.makerSell = METRONOME.placeOrder(false, makerTick, victimBase);
-        r.attackerBuy = METRONOME.placeOrder(true, makerTick + SLIPPAGE_TICKS, attackerBase); // front-run
-        r.victimBuy = METRONOME.placeOrder(true, makerTick + SLIPPAGE_TICKS, victimBase); // victim, loose slippage
-        r.attackerSell = METRONOME.placeOrder(false, makerTick - SLIPPAGE_TICKS, attackerBase); // back-run
+        r.makerSell = METRONOME.placeOrder(false, makerTick, victimBase, false);
+        r.attackerBuy = METRONOME.placeOrder(true, makerTick + SLIPPAGE_TICKS, attackerBase, false); // front-run
+        r.victimBuy = METRONOME.placeOrder(true, makerTick + SLIPPAGE_TICKS, victimBase, false); // victim, loose slippage
+        r.attackerSell = METRONOME.placeOrder(false, makerTick - SLIPPAGE_TICKS, attackerBase, false); // back-run
         r.victimCleanCost = METRONOME.quoteBuyEscrow(victimBase, makerTick);
         runs.push(r);
     }
@@ -97,7 +97,8 @@ contract SandwichLab {
         if (msg.sender != r.caller) revert NotCaller(runId);
         r.finished = true;
 
-        IMetronome.BatchResult memory res = METRONOME.settle(r.batchId);
+        METRONOME.settle(r.batchId);
+        IMetronome.BatchResult memory res = METRONOME.getBatchResult(r.batchId);
         uint256 victimPaid = _claimVictim(r.victimBuy);
         (int256 pnl, int256 baseDelta) = _claimAttacker(r.attackerBuy, r.attackerSell);
         METRONOME.claim(r.makerSell);
