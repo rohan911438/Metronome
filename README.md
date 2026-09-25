@@ -126,7 +126,8 @@ Metronome is meant to be **infrastructure**, not a single app:
 | Milestone | Target | |
 |---|---|---|
 | Architecture and roadmap | Sep 25 | ✅ |
-| Core contract on Monad testnet, fuzz + invariant tests | Oct 1 | ⏳ |
+| Core contract with differential fuzz + invariant tests (67 passing) | Oct 1 | ✅ |
+| Deployed on Monad testnet | Oct 1 | ⏳ |
 | Live market with keeper and market-maker bots; sandwich demo | Oct 3 | ⏳ |
 | End-to-end trade on a phone | Oct 7 | ⏳ |
 | Chainlink workflow and parallelism benchmark | Oct 9 | ⏳ |

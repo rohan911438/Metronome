@@ -18,19 +18,21 @@ Solo build. Design: [`architecture.md`](architecture.md). Submission target **Oc
 
 ### Phase 1 — Foundations (Sep 25–26)
 - [ ] Copy official sponsor rules from the dashboard into `tracks/` (Agora, Privy, Chainlink). **These decide phases 4–5.**
-- [ ] Get testnet MON from the faucet; find the testnet AUSD address and WMON address; check for a Chainlink MON/USD feed on Monad
-- [ ] `forge init contracts`, OpenZeppelin, `foundry.toml` with Monad testnet/mainnet RPCs
-- [ ] `TickMath.sol` + exhaustive test over all 4096 ticks
-- [ ] `TickBitmap.sol` + tests
-- [ ] Mocks: `MockERC20` (6 and 18 decimals), `MockAggregator`
-- [ ] GitHub Actions: `forge fmt --check`, `forge test`
+- [ ] Get testnet MON from the faucet (**needs the deployer wallet**)
+- [x] Find the testnet AUSD address and WMON address; check for a Chainlink MON/USD feed on Monad
+- [x] `forge init contracts`, OpenZeppelin, `foundry.toml` with Monad testnet/mainnet RPCs
+- [x] `TickMath.sol` + exhaustive test over all 4096 ticks
+- [x] `TickBitmap.sol` + tests
+- [x] Mocks: `MockERC20` (6 and 18 decimals), `MockAggregator`
+- [x] GitHub Actions: `forge fmt --check`, `forge test`
 
 ### Phase 2 — Core contract (Sep 27–Oct 1)
-- [ ] Sep 27: `ClearingLib` (pure) + brute-force reference + differential fuzz
-- [ ] Sep 28: `placeOrder` with shards, escrow, per-user nonce IDs, events
-- [ ] Sep 29: `settle` (reads shards → clearing → result), oracle guard, keeper reward
-- [ ] Sep 30: `claim`, `claimMany`, `settleAndClaim`, fees, pause; unit tests for every path
-- [ ] Oct 1: invariant suite (5 invariants), `forge snapshot` gas numbers, `Deploy.s.sol`, **deploy to testnet** → M1
+- [x] Sep 27: `ClearingLib` (pure) + brute-force reference + differential fuzz
+- [x] Sep 28: `placeOrder` with shards, escrow, per-user nonce IDs, events
+- [x] Sep 29: `settle` (reads shards → clearing → result), oracle guard, keeper reward
+- [x] Sep 30: `claim`, `claimMany`, `settleAndClaim`, fees, pause; unit tests for every path
+- [x] Oct 1: invariant suite, gas numbers, `Deploy.s.sol` (dry-run against testnet passes)
+- [ ] **Deploy to testnet** → M1 (needs a funded key, ~1 testnet MON)
 
 ### Phase 3 — Bots and demo contracts (Oct 2–3)
 - [ ] pnpm workspace, shared `config.ts` (addresses, ABIs via `forge inspect`)

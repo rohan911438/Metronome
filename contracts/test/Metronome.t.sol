@@ -445,6 +445,58 @@ contract MetronomeTest is MetronomeTestBase {
         vm.stopPrank();
     }
 
+    function test_claimManyPaysEveryOwner() public {
+        bytes32 a = _buy(alice, T, 2e18);
+        bytes32 c = _buy(carol, T, 1e18);
+        bytes32 s = _sell(bob, T, 3e18);
+        _next();
+        bytes32[] memory ids = new bytes32[](3);
+        (ids[0], ids[1], ids[2]) = (a, c, s);
+        vm.prank(keeper);
+        m.claimMany(ids);
+        assertEq(wmon.balanceOf(alice), 1_000_000e18 + 2e18);
+        assertEq(wmon.balanceOf(carol), 1_000_000e18 + 1e18);
+        assertTrue(m.getOrder(s).claimed);
+        _assertSolvent();
+    }
+
+    function test_unpauseAllowsPlacingAgain() public {
+        vm.startPrank(owner);
+        m.pause();
+        m.unpause();
+        vm.stopPrank();
+        _buy(alice, T, 1e18);
+    }
+
+    function test_constructorRejectsBadConfig() public {
+        IERC20 w = IERC20(address(wmon));
+        IERC20 q = IERC20(address(ausd));
+        vm.expectRevert(Metronome.InvalidConfig.selector);
+        new Metronome(w, w, PRICE_MIN, 4, 1, 5, 0, owner); // same token
+        vm.expectRevert(Metronome.InvalidConfig.selector);
+        new Metronome(w, q, 0, 4, 1, 5, 0, owner); // zero price
+        vm.expectRevert(Metronome.InvalidConfig.selector);
+        new Metronome(w, q, PRICE_MIN, 0, 1, 5, 0, owner); // no shards
+        vm.expectRevert(Metronome.InvalidConfig.selector);
+        new Metronome(w, q, PRICE_MIN, 65, 1, 5, 0, owner); // too many shards
+        vm.expectRevert(Metronome.InvalidConfig.selector);
+        new Metronome(w, q, PRICE_MIN, 4, 0, 5, 0, owner); // zero min size
+        vm.expectRevert(Metronome.InvalidConfig.selector);
+        new Metronome(w, q, PRICE_MIN, 4, 1, 101, 0, owner); // fee above 1%
+    }
+
+    function test_adminRejectsBadConfig() public {
+        vm.startPrank(owner);
+        vm.expectRevert(Metronome.InvalidConfig.selector);
+        m.setFees(101, 0);
+        vm.expectRevert(Metronome.InvalidConfig.selector);
+        m.setOracle(address(1), 0, 1 hours);
+        vm.expectRevert(Metronome.InvalidConfig.selector);
+        m.setOracle(address(1), 500, 0);
+        m.setOracle(address(0), 0, 0); // disabling is always allowed
+        vm.stopPrank();
+    }
+
     // ------------------------------------------------------------------ price guard
 
     function test_oracleWithinBoundAllowsTrade() public {
