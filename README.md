@@ -7,6 +7,8 @@ Metronome is a fully onchain frequent batch auction exchange on [Monad](https://
 Built for the [Monad Metropolis hackathon](https://monad.xyz/developers/hackathons/metropolis) (Sep 1 – Oct 13, 2026).
 
 - **Where we're applying and how we qualify:** [`tracks/`](tracks/README.md)
-- **Design and build plan:** [`ideas/02-metronome-batch-auction-exchange.md`](ideas/02-metronome-batch-auction-exchange.md)
+- **Architecture:** [`docs/architecture.md`](docs/architecture.md)
+- **Roadmap:** [`docs/roadmap.md`](docs/roadmap.md)
+- **Original idea and pitch:** [`ideas/02-metronome-batch-auction-exchange.md`](ideas/02-metronome-batch-auction-exchange.md)
 
 > 🚧 Work in progress.

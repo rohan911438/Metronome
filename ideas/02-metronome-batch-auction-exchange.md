@@ -63,19 +63,8 @@ CoW Protocol does batch auctions with **offchain solvers** you have to trust. Me
 - Privy ($5k): passkey login, embedded wallet, popup-free signing
 - Chainlink CRE ($3k): keeper/settlement workflow
 
-## 18-day plan (Sep 25 → Oct 13), solo scope
-Cut for now: multi-batch orders, router contract, extra markets.
-
-| Days | Work |
-|---|---|
-| 1–2 | Final spec, math for clearing and pro-rata, Foundry setup, testnet RPC |
-| 3–7 | Core contracts: place / settle / claim / cancel, sharded buckets, fuzz + invariant tests |
-| 8–10 | Settle keeper, MM bot, sandwich-attack simulator, parallelism benchmark |
-| 8–13 | Frontend: trading UI, batch visualizer, Privy login (in parallel) |
-| 11–13 | Chainlink CRE workflow |
-| 14–15 | Mainnet deploy (chain 143), bug bash, security pass |
-| 16–17 | Polish, README with diagrams, **demo video** |
-| 18 | Submit (don't leave it to the last hour) |
+## Build plan
+Superseded by [`docs/roadmap.md`](../docs/roadmap.md) (dates, milestones, cut order). Architecture decisions are in [`docs/architecture.md`](../docs/architecture.md).
 
 ## Risks and mitigations
 - Complex math → keep ticks discrete, one market only, heavy fuzzing
