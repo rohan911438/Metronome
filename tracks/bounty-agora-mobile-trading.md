@@ -1,31 +1,40 @@
 # Agora — Best Mobile Trading App on Monad
 
 **Sponsor:** Agora (issuer of the **AUSD** stablecoin)
-**Amount:** Agora's total is $20k, covering "mobile trading" and "cross-border payments". The exact amount for this bounty is TBC.
-**Closes:** Oct 14, 2026, 04:59 GMT+1 (per public listing)
+**Amount:** $10,000, single prize. The sibling "Best Cross-Border Payments App on Monad" is a separate $10,000.
+**Track:** Onchain Finance & Trading
+**Deadline:** Oct 14, 2026, 09:29 GMT+5:30
 
-> ⚠️ **Official requirements are TBC.** Copy the exact wording from the hackathon dashboard here before building.
-> The cross-border sibling bounty requires a *mobile app* and Mera passkey onboarding. This one may have similar strict rules.
+## Official rules (copied from the hackathon dashboard, Sep 26)
 
-## Likely eligibility (to confirm)
-- A trading app that works on **mobile**
-- Uses **AUSD** (testnet AUSD is available for this bounty)
-- Deployed on Monad
+> Build a mobile app authenticating via Mera, holding an AUSD balance, and executing trades through Perpl.
 
-## What we do to qualify
-| Likely requirement | Metronome |
+**Eligibility:** a team must build a mobile application that
+1. authenticates users via **Mera** (Monad's passkey authentication),
+2. holds and displays a stablecoin balance in **AUSD**,
+3. executes trades through **Perpl**.
+
+**Judging criteria:** implementation quality; user experience; creative use of the three integrations together, not just technical completeness.
+
+**Deliverable:** a working demo showing a user logging in via passkey, funding or viewing an AUSD balance, and placing at least one trade on Perpl.
+
+Resources: docs.agora.finance/contract-overview, docs.agora.finance, docs.monad.xyz, developers.monad.xyz.
+
+## Status: applying (decided Sep 26)
+
+We switch login from Privy to **Mera** and add a **Perpl** perps tab; Metronome stays the main product. Plans: [bounty-mera.md](bounty-mera.md), [bounty-perpl.md](bounty-perpl.md).
+
+| Requirement | How we meet it |
 |---|---|
-| Mobile trading app | Mobile-first PWA (installable to the home screen). If a native app is required, wrap it with Capacitor or Expo |
-| Uses AUSD | **MON/AUSD** is the first and main market; AUSD is the quote asset |
-| On Monad | Contracts on Monad testnet, then mainnet |
+| Mobile app, Mera passkey login | Metronome PWA, "Continue with Face ID" via Mera |
+| Holds and displays an AUSD balance | AUSD balance on the home screen and portfolio; AUSD is Perpl's mainnet collateral and Metronome's mainnet quote asset |
+| Executes trades through Perpl | Perps tab: orders sent through Perpl's API |
+| Demo: passkey login → fund/view AUSD → at least one Perpl trade | Filmed on a real phone |
 
-## How we plan to win
-- **Face ID login and one-tap trade**: no seed phrase and no wallet popups (via Privy)
-- Show "MEV-protected price" on every trade. Mobile users get sandwiched the most, since they tend to use loose slippage settings
-- Fast: the trade is confirmed and settled within about 1 second on the phone
-- Record part of the demo video on an actual phone
+**Open question for Agora:** is a Perpl **testnet** trade (collateral is Perpl's "USD", not AUSD) acceptable, or must the demo be on mainnet with real AUSD (min 100 AUSD deposit)?
 
-## Open questions
-- [ ] Does a PWA count as a "mobile app", or does it need to be native?
-- [ ] Is AUSD mandatory or just a bonus?
-- [ ] Is a specific SDK required (like Mera for the cross-border bounty)?
+## Reference
+
+- **Mera:** Category Labs' TypeScript library that derives an EVM account from a passkey (WebAuthn PRF), with no backend or seed phrase. https://github.com/category-labs/mera, docs at https://mera.category.xyz
+- **Perpl:** fully onchain perps order book on Monad; testnet at testnet.perpl.xyz, API docs at https://github.com/PerplFoundation/api-docs
+- AUSD: testnet token `0xa901…22dC` exists, but the faucet is empty (checked Sep 26); the Agora API (docs.agora.finance/api) is mainnet-only.

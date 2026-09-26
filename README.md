@@ -96,8 +96,8 @@ Monad executes transactions in parallel and re-runs ones that touched the same s
 
 A mobile-first trading app designed for people who have never used a wallet:
 
-- **Log in with Face ID or email.** A wallet is created for you ([Privy](https://privy.io)): no seed phrase, no popups.
-- **One tap to trade** MON against **AUSD**, [Agora](https://www.agora.finance)'s stablecoin. Every trade shows its batch and clearing price.
+- **Log in with Face ID.** Your wallet comes from your passkey ([Mera](https://mera.category.xyz)): no seed phrase, no popups, no custody server.
+- **One tap to trade** MON against a dollar stablecoin (AUSD on mainnet). Every trade shows its batch and clearing price.
 - **Filled within about a second.** Funds arrive automatically; there is no "claim" button to find.
 - **See the auction live:** supply and demand curves animate and cross every block.
 - **Sandwich lab:** run the same attack against an AMM and against Metronome, side by side, and watch the victim's loss.
@@ -107,9 +107,12 @@ A mobile-first trading app designed for people who have never used a wallet:
 | Partner | Role in Metronome |
 |---|---|
 | **Monad** | Execution layer: 300 ms batches, parallel execution, cheap clearing |
-| **Agora (AUSD)** | Quote asset of the first market |
-| **Privy** | Passkey login, embedded wallets, popup-free signing, in-app funding |
+| **AUSD** ([Agora](https://www.agora.finance)) | Quote asset of the mainnet market and Perpl collateral; balance shown in the app |
+| **Mera** | Passkey login; one passkey derives the wallet key and the Perpl API key; popup-free signing |
+| **Perpl** | Perps tab: trade perpetual futures from the same app, collateral in AUSD |
 | **Chainlink** | CRE workflow as the exchange's heartbeat (settles and pays out every batch); price feed as a circuit breaker |
+| **Nansen** | MEV radar: finds real sandwich attacks on Monad AMMs and labels the attackers |
+| **Envio** | Indexer behind the stats page, trade history and price chart |
 
 ## Where it goes next
 
@@ -130,10 +133,13 @@ Metronome is meant to be **infrastructure**, not a single app:
 | Resting (maker) orders: post once, fill across batches (90 tests passing) | — | ✅ |
 | Deployed on Monad testnet: [`0x99E4…a889`](https://testnet.monadscan.com/address/0x99E4DBCF8edE8092Be972307eB3d0Cd91ecBa889), taker and resting cycles verified live | Oct 1 | ✅ |
 | Keeper + market-maker bots; end-to-end test on a local chain (sandwich: AMM victim −527 bps, Metronome 0) | Oct 3 | ✅ |
-| Bots live on testnet with real AUSD liquidity | Oct 3 | ⏳ (needs testnet AUSD) |
+| Bots live on testnet (WMON/USDC market on testnet) | Oct 3 | ⏳ |
+| Mobile web app (Next.js PWA): trade, portfolio, batch explorer, sandwich lab | Oct 3 | ✅ |
+| Mera passkey login (one passkey → wallet key + Perpl key) | Oct 3 | ✅ |
+| Perpl perps tab | Oct 7 | ⏳ |
 | End-to-end trade on a phone | Oct 7 | ⏳ |
-| Chainlink workflow and parallelism benchmark | Oct 9 | ⏳ |
-| Monad mainnet | Oct 10 | ⏳ |
+| Chainlink workflow, Envio indexer + stats page, Nansen MEV radar, parallelism benchmark | Oct 10 | ⏳ |
+| Monad mainnet | Oct 11 | ⏳ |
 
 Contract addresses, test results, gas numbers and the demo video will be added here as they land. Full plan: [`docs/roadmap.md`](docs/roadmap.md).
 
@@ -154,4 +160,4 @@ tracks/             hackathon track and bounty notes
 
 ## Built with
 
-Solidity · Foundry · TypeScript · viem · Next.js · wagmi · Privy · Chainlink CRE · Monad
+Solidity · Foundry · TypeScript · viem · Next.js · Mera · Perpl · Envio · Nansen · Chainlink CRE · Monad

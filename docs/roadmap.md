@@ -9,15 +9,19 @@ Solo build. Design: [`architecture.md`](architecture.md). Submission target **Oc
 | M0 | Sep 26 | Spec frozen, repo scaffolded | Foundry builds, CI runs `forge test`, mocks deployed locally |
 | M1 | **Oct 1** | Core contract on testnet | place → settle → claim works on Monad testnet; fuzz + invariant tests green |
 | M2 | Oct 3 | Live market | Keeper + MM bot running on testnet; SandwichLab shows victim loss AMM vs. 0 on Metronome |
-| M3 | **Oct 7** | End-to-end on a phone | Privy login → fund → trade → auto-claimed, on a real phone, on testnet |
-| M4 | Oct 9 | Sponsor integrations | CRE workflow settling on testnet (if supported); benchmark numbers collected |
-| M5 | Oct 10 | Mainnet | Contracts verified on Monad mainnet (143), small seeded liquidity |
+| M3 | **Oct 7** | End-to-end on a phone | Mera passkey login → AUSD balance → Metronome trade (auto-claimed) **and** a Perpl perp trade, on a real phone |
+| M4 | Oct 10 | Sponsor integrations | CRE workflow settling on testnet (if supported); Envio indexer live behind `/stats`; `/radar` shows real Monad sandwiches with Nansen labels; benchmark numbers collected |
+| M5 | Oct 11 | Mainnet | Contracts verified on Monad mainnet (143), small seeded liquidity |
 | M6 | **Oct 12** | Submitted | Video, README, project profile, all bounties opted in |
 
 ## Day-by-day
 
 ### Phase 1 — Foundations (Sep 25–26)
-- [ ] Copy official sponsor rules from the dashboard into `tracks/` (Agora, Privy, Chainlink). **These decide phases 4–5.**
+- [x] Agora rules copied (Sep 26): Mera passkey login + AUSD balance + trades through Perpl. **Decision: switch login from Privy to Mera, add a Perpl perps tab; Privy dropped**
+- [ ] Copy the remaining official sponsor rules into `tracks/`: Perpl, Mera ×2, Nansen, Chainlink, Envio. **These decide phases 4–5.**
+- [ ] Ask the Perpl team (user): whitelist our origin for API-key enrollment; testnet "USD" collateral; is the testnet beta open
+- [ ] Ask Agora (user): is a Perpl testnet trade OK for the demo, or must it be mainnet AUSD?
+- [ ] Ask Nansen (user): does the API cover Monad; free hackathon key?
 - [x] Get testnet MON from the faucet
 - [x] Find the testnet AUSD address and WMON address; check for a Chainlink MON/USD feed on Monad
 - [x] `forge init contracts`, OpenZeppelin, `foundry.toml` with Monad testnet/mainnet RPCs
@@ -45,22 +49,38 @@ Solo build. Design: [`architecture.md`](architecture.md). Submission target **Oc
 - [x] MM bot: resting ladder, re-quote on price moves, inventory limits (single wallet for now)
 - [x] Local end-to-end test (Anvil) in CI: 60 random takers, 55 filled, 0 bot errors
 - [x] `MiniAMM.sol` + `SandwichLab.sol` (tests: AMM victim −4.17%, Metronome victim 0)
-- [ ] Run keeper + MM + sandwich on testnet → M2 (**blocked: needs testnet AUSD**)
+- [ ] Run keeper + MM + sandwich on testnet → M2. The AUSD faucet is empty, so: redeploy the testnet market as **WMON/USDC** (deployer holds 20 testnet USDC + 6.5 MON); mainnet stays WMON/AUSD. The AUSD balance Agora wants comes from the AUSD token (and Perpl collateral on mainnet), not the testnet market. **Waiting for the user's OK**
+- [x] `pnpm dev:local`: long-running local stack (Anvil + deploy + keeper + MM + background traders + one lab run) for frontend work
 
-### Phase 4 — Frontend + Privy + Agora (Oct 4–7)
-- [ ] Oct 4: Next.js scaffold, wagmi/viem, Privy provider, Monad chain config, Trade page ticket
-- [ ] Oct 5: live batch chart (supply/demand), last prices, `/portfolio`
-- [ ] Oct 6: Privy beyond login: embedded wallet, headless signing, smart wallet batching + gas sponsorship (if available), funding button; tight gas limits
-- [ ] Oct 7: mobile polish, PWA manifest, `/batch/[id]`, `/lab`; test on a real phone → M3
+### Phase 4 — Frontend + Mera (done Sep 26, ahead of schedule)
+- [x] `web/`: Next.js 16 + viem + Tailwind, installable PWA (manifest, PNG/SVG icons, service worker); builds for local and testnet
+- [x] Trade page: ticket ("Now" taker order with max price move, "Limit" resting order), auto wrap + approve, fill result card; live supply/demand chart; recent batches
+- [x] `/portfolio` (orders found from `nonces(owner)`, no log scans; fills and refunds shown separately; cancel resting orders), `/batch/[id]`, `/lab` (live result + "run it yourself")
+- [x] **Mera login replaced Privy:** create / unlock / lock / sign out; wallet key only in an in-memory Mera signing session; clear message on devices without PRF
+- [x] **One passkey, many keys:** `lib/keys.ts` derives the Monad wallet (BIP-44) and the Perpl Ed25519 API key (HKDF, own label) from one PRF output; "One passkey, many keys" panel
+- [x] AUSD balance in the header and account sheet; "Add AUSD/MON" (receive address; testnet faucet link)
+- [x] CI job `web.yml`: generated files up to date, typecheck, testnet build
+- [x] Validated in headless Edge at phone size against `pnpm dev:local`: 9/9 UI checks (fund, buy, sell, limit, portfolio + cancel, batch, lab run); passkey flow with a virtual PRF authenticator 5/5 (create, keys, lock/unlock and reload give the same address, trade with no popup); testnet build reads the live contract with no errors
+- [ ] Test on a real phone (iOS 18+ / Android) with a real passkey → part of M3
 
-### Phase 5 — Chainlink CRE + benchmark (Oct 8–9)
-- [ ] Oct 8: CRE `metronome-heartbeat` workflow (simulate locally, then deploy)
-- [ ] Oct 9: benchmark K=1 vs K=16 with 200 wallets; `/stats` page → M4
+### Phase 4b — Perpl perps tab (Oct 4–7)
+- [ ] Oct 4: `lib/perpl.ts`: REST + market-data WebSocket (no key): markets, mark price, order book for MON/BTC/ETH; `/perps` page with market picker and price
+- [ ] Oct 5: onboarding signed by the Mera wallet: approve collateral → `createAccount` → `allowOrderForwarding(true)`; API-key enrollment (`/api-key/payload` → EIP-712 wallet signature + Ed25519 proof → `/api-key/enroll`). **Needs Perpl's origin whitelist**; fallback: paste a key made on perpl.xyz
+- [ ] Oct 6: trading WebSocket: signed requests, place market/limit orders, cancel; positions, open orders, P&L, collateral in AUSD; perps section in `/portfolio`
+- [ ] Oct 7: mobile polish; film on a real phone: passkey → AUSD balance → Metronome trade → Perpl trade → M3
 
-### Phase 6 — Ship (Oct 10–12)
-- [ ] Oct 10: security self-review (checklist in architecture §7), mainnet deploy + verify, seed liquidity → M5
-- [ ] Oct 11: README (problem, why Monad, diagram, addresses, test + gas + benchmark results, how to run); record the demo video
-- [ ] Oct 12: submit; opt in to bounties → M6
+### Phase 5 — Sponsor integrations + benchmark (Oct 8–10)
+- [ ] **Oct 8 — Chainlink CRE:** `metronome-heartbeat` workflow (cron trigger → find pending batches → `settleAndClaim`); simulate locally, then deploy to testnet
+- [ ] **Oct 9 — Envio indexer** (`indexer/`, HyperIndex): entities `Order`, `Batch`, `Trader`, `Pool`, `Keeper`, `DailyStats` from `OrderPlaced`, `BatchSettled`, `Claimed`, `OrderCancelled`, `PoolUpdated`, `SettleRewardPaid`; run locally against Anvil, then host for testnet (Envio Cloud)
+- [ ] **Oct 9 — `/stats` page** from the indexer (volume, batches, trades, traders, fill time, gas per action, keeper leaderboard, clearing-price chart); portfolio history from the indexer with RPC fallback
+- [ ] **Oct 10 — Nansen MEV radar:** `bots/src/radar.ts` scans the busiest Monad mainnet AMM pools for same-block sandwiches and computes each victim's loss; labels attackers/victims via the Nansen API (key server-side only); writes `radar.json`; `/radar` page
+- [ ] **Oct 10 — benchmark** K=1 vs K=16 with 200 wallets; results on `/stats` → M4
+
+### Phase 6 — Ship (Oct 11–12)
+- [ ] Oct 11: security self-review (checklist in architecture §7, incl. a fork test against real WMON/AUSD), mainnet deploy + verify, seed liquidity, point the indexer and app at mainnet → M5
+- [ ] Oct 11: if Agora needs mainnet: fund a demo account with ≥100 AUSD + MON (user), do the Perpl mainnet trade on camera
+- [ ] Oct 11: record the demo video (early, in case testnet/mainnet is unstable later)
+- [ ] Oct 12: README (problem, why Monad, diagram, addresses, tests, gas, benchmark, radar findings, indexer GraphQL example, Mera keys, Perpl flow, how to run); submit; opt in to Agora, Perpl, Mera ×2, Nansen, Chainlink, Envio → M6
 - Oct 13: buffer only. No new features.
 
 ## What each track needs, and when it's ready
@@ -69,19 +89,27 @@ Solo build. Design: [`architecture.md`](architecture.md). Submission target **Oc
 |---|---|---|---|
 | **Track 01** | Onchain matching contract, tests, live market, sandwich demo | Phases 2–3 | Oct 3 |
 | **Grand Champion** | Polish, numbers (`/stats`), `IMetronome` integration guide, strong README + video | Phases 5–6 | Oct 11 |
-| **Agora (mobile, AUSD)** | AUSD quote asset, mobile PWA, filmed on a phone | Phases 2 + 4 | Oct 7 |
-| **Privy ($5k)** | Embedded wallet + headless signing + funding (+ smart wallet batching if available) | Phase 4 | Oct 6 |
+| **Agora ($10k)** | Mobile app: Mera passkey login, AUSD balance, a trade through Perpl, filmed on a phone | Phases 4–4b | Oct 7 |
+| **Perpl ($5k)** | Perps tab: in-app onboarding, API-key enrollment, orders over the trading WebSocket | Phase 4b | Oct 7 |
+| **Mera ×2 ($2.5k each)** | Passkey login with popup-free signing; one passkey derives the wallet key and the Perpl API key | Phase 4 | Oct 3 |
 | **Chainlink CRE ($3k)** | Workflow that settles batches on Monad | Phase 5 | Oct 8 |
+| **Envio ($1k)** | HyperIndex indexer used by `/stats` and portfolio history | Phase 5 | Oct 9 |
+| **Nansen ($5k)** | `/radar`: real Monad sandwiches, attackers labelled via the Nansen API | Phase 5 | Oct 10 |
+| ~~Privy~~ | Dropped Sep 26 (replaced by Mera) | — | — |
 
 ## If we fall behind: what gets cut, in order
 
-1. Smart-wallet batching and gas sponsorship (keep embedded wallet + headless signing)
-2. Mainnet deploy (submit on testnet; allowed, just less impressive)
-3. Chainlink CRE workflow (−$3k chance)
-4. Benchmark (keep the design explanation, drop the chart)
-5. `/batch/[id]` and `/stats` pages
+1. Mera sub-accounts (keep the wallet key + Perpl key)
+2. Benchmark (keep the design explanation, drop the chart)
+3. Envio indexer and `/stats` (−$1k chance; the app already runs on RPC alone)
+4. Mainnet deploy (submit on testnet; allowed, just less impressive; the radar still reads mainnet)
+5. Chainlink CRE workflow (−$3k chance)
+6. Nansen radar (−$5k chance)
+7. `/batch/[id]` page
 
-**Never cut:** the core contract and its tests, the sandwich demo, a working mobile trade, and the video.
+If Perpl never whitelists our origin: keep the perps tab with the "paste a key from perpl.xyz" fallback rather than cutting it (Agora and Perpl both need the trade).
+
+**Never cut:** the core contract and its tests, the sandwich demo, Mera login, a working mobile trade on Metronome and on Perpl, and the video.
 
 ## Risks to watch
 
@@ -90,7 +118,13 @@ Solo build. Design: [`architecture.md`](architecture.md). Submission target **Oc
 | Clearing math bugs | Differential fuzz fails | Stop and fix before anything else; it's the whole product |
 | CRE can't write to Monad | Found out in Phase 1 | Drop the bounty; keeper does the job |
 | No Chainlink feed on Monad | Found out in Phase 1 | Oracle guard stays off; MM uses last clearing price or an offchain price |
-| Privy smart wallets not on Monad | Found out Oct 6 | Cut item 1 above |
-| Agora needs a native app | Found out in Phase 1 | Capacitor wrapper on Oct 7 (half a day) |
+| Perpl doesn't whitelist our origin in time | Ask now (Sep 26); decide by Oct 5 | Paste-a-key fallback; say so in the write-up |
+| No Perpl testnet collateral / closed beta | Ask now | Do the Perpl trade on mainnet with real AUSD (≥100, user funds) |
+| Device lacks passkey PRF support | First phone test | Test on iOS 18+ / recent Android + Chrome early; show a clear "unsupported device" message |
+| Agora requires mainnet AUSD | Ask now | Mainnet Perpl trade on Oct 11 |
+| Nansen API doesn't cover Monad, or no hackathon key | Ask in Nansen Discord now | Label cross-chain addresses and say so; otherwise drop the bounty |
+| Few real sandwiches on Monad mainnet | Radar scan on Oct 10 (run a trial scan earlier) | Widen the block window and pool list; report honestly, e.g. "N sandwiches, $X extracted in 7 days" |
+| Envio doesn't support Monad | Check docs before Oct 9 | Drop the bounty; `/stats` from RPC over a short window |
+| Low RAM on the dev machine (installs killed) | Sep 26 | Close other apps before installs/builds; avoid running dev server, Anvil and bots all at once |
 | RPC log-range limits break the frontend | Oct 5 | Smaller windows; cache in the browser |
 | Monad testnet unstable near the deadline | Oct 10+ | Record the video early (Oct 11), keep a local Anvil demo as backup |

@@ -7,7 +7,7 @@ Status: **decided, Sep 25 2026**. Change this doc before changing the design in 
 ```mermaid
 flowchart LR
     subgraph Users
-        U[Phone / browser<br/>Next.js PWA + Privy]
+        U[Phone / browser<br/>Next.js PWA + Mera passkeys]
     end
     subgraph Monad
         M[Metronome.sol<br/>one market: WMON/AUSD]
@@ -33,7 +33,7 @@ flowchart LR
     B -- floods orders --> M
 ```
 
-There is **no backend server and no indexer**. The frontend reads contract state and events directly over RPC. The bots are stateless scripts that anyone could run.
+There is **no backend server**. The frontend reads contract state and events directly over RPC, and every page works that way. An **Envio indexer** (§5.6) is an optional read path for history and `/stats`; the app falls back to RPC without it. The bots are stateless scripts that anyone could run.
 
 ## 2. Core concepts
 
@@ -172,7 +172,9 @@ bots/
   mm/         market maker
   bench/      parallelism benchmark
   sandwich/   script that drives SandwichLab for the demo
+  radar       MEV radar: finds sandwiches on Monad AMMs, labels them via Nansen (§5.5)
 cre/          Chainlink CRE workflow
+indexer/      Envio HyperIndex (§5.6)
 web/          Next.js PWA
 ```
 
@@ -189,15 +191,17 @@ web/          Next.js PWA
 - Stops quoting if one side's inventory falls under a threshold.
 
 ### 4.3 Frontend (`web/`)
-Next.js App Router, wagmi + viem, Privy, Tailwind. Installable PWA.
+Next.js App Router, viem, Mera (passkey accounts), Tailwind. Installable PWA.
 
 | Page | Content |
 |---|---|
 | `/` Trade | Buy/sell ticket (amount + "max price" slider, or "market" = most extreme tick), last clearing price, live supply/demand chart for the current batch, "MEV-protected" badge |
 | `/portfolio` | Open and filled orders, fill price, status (pending → settled → claimed) |
 | `/batch/[id]` | Supply/demand curves for any past batch, clearing point, pro-rata info |
+| `/perps` | Perpl perpetuals: market, order ticket, positions (see §5.3) |
 | `/lab` | Sandwich demo: AMM victim loss vs. Metronome victim loss, side by side |
-| `/stats` | Volume, batches settled, gas per order/settle/claim, benchmark chart |
+| `/stats` | Volume, batches settled, gas per order/settle/claim, benchmark chart (from the Envio indexer) |
+| `/radar` | MEV radar: real sandwiches on Monad AMMs, attackers labelled via Nansen |
 
 Data comes from `getLogs` over a sliding window plus `watchBlockNumber`. Queries are kept to small block ranges because of RPC limits.
 
@@ -217,26 +221,30 @@ Data comes from `getLogs` over a sliding window plus `watchBlockNumber`. Queries
 - A `/stats` page with real numbers, and a polished README with this diagram.
 - Business model: fees (§3.6), more markets, a router for aggregators (post-hackathon).
 
-### 5.3 Agora — Best Mobile Trading App (AUSD)
-- **AUSD is the quote asset** of the only market.
-- Mobile-first PWA: large one-handed ticket, bottom nav, installable, and fast since the trade is filled within ~1s.
-- "Add AUSD" entry point (Privy funding if it supports Monad, otherwise a faucet link on testnet).
-- Part of the demo is filmed on a real phone.
-- **Gate:** confirm on the dashboard whether a PWA counts and whether a specific SDK is required. If native is required, wrap with Capacitor (about half a day).
+### 5.3 Mera + Perpl + Agora — mobile trading
+The Agora bounty requires Mera passkey login, an AUSD balance and trades through Perpl ([`tracks/bounty-agora-mobile-trading.md`](../tracks/bounty-agora-mobile-trading.md)). The same work targets Perpl's API bounty and both Mera bounties.
 
-### 5.4 Privy — beyond login
-| Feature | Use |
+**Mera (login and keys).** `@category-labs/mera`, no backend, no API key.
+| Step | Detail |
 |---|---|
-| Passkey / email login | Onboarding with no seed phrase |
-| Embedded wallet | Created automatically on first login |
-| Headless signing (`showWalletUIs: false` for known actions) | place and claim with no popup |
-| **Smart wallets + gas sponsorship** (if a Monad bundler/paymaster is available) | wrap + approve + placeOrder in **one** batched user operation, gas-free for new users |
-| Funding | "Add AUSD" / "Add MON" |
+| Unlock | "Continue with Face ID" → `getPasskeyPrfOutput({ rpId: location.hostname })` returns 32 secret bytes from the passkey |
+| Many keys | From that PRF output: Monad wallet key at BIP-44 `m/44'/60'/0'/0/0`; Perpl Ed25519 API key from a separate derivation; optional sub-accounts at `…/i` |
+| Signing | `createSecp256k1SigningSession` → `toViemAccount` → viem wallet client. Every Metronome/Perpl action is signed in-app with no popup. The session is in memory only and ends on logout or reload (re-unlock with the passkey) |
+| Recovery | A synced passkey on a new device re-derives every key; nothing is stored server-side |
 
-Auto-claim is handled by our keeper/CRE (`claimMany`), so Privy session signers aren't needed.
-**Gate:** confirm the bounty rules and that smart wallets work on Monad. Without them, fall back to embedded wallet + headless signing + funding, which is still beyond login.
+**Perpl (perps tab).** Fully onchain perps order book on Monad; docs at github.com/PerplFoundation/api-docs.
+| Step | Detail |
+|---|---|
+| Market data | Public REST + market-data WebSocket, no key |
+| Account (once, onchain) | approve collateral → `createAccount(amount)` → `allowOrderForwarding(true)`, signed by the Mera wallet |
+| API key (once) | `POST /api/v1/api-key/payload` → EIP-712 signature by the wallet + Ed25519 proof of possession → `POST /api/v1/api-key/enroll`. Browser enrollment needs Perpl to whitelist our origin; fallback: user pastes a key made on perpl.xyz |
+| Trading | Signed requests over `/ws/v1/trading`; Perpl submits and pays gas |
+| Collateral | AUSD on mainnet (min 100); Perpl "USD" on testnet |
 
-### 5.5 Chainlink — Best CRE workflow
+**AUSD balance** is shown in the header and portfolio (token balance plus Perpl collateral).
+**Gates:** Perpl origin whitelist and testnet collateral; Agora's answer on testnet vs mainnet; passkey PRF support on the demo phone.
+
+### 5.4 Chainlink — Best CRE workflow
 Workflow `metronome-heartbeat`:
 1. Trigger: cron (or an EVM log trigger on `OrderPlaced`, if supported on Monad).
 2. Read unsettled batches with orders (via `getLogs`).
@@ -247,7 +255,20 @@ Workflow `metronome-heartbeat`:
 The contract doesn't depend on CRE: `claim` auto-settles, and the keeper is the fallback.
 **Gate:** confirm CRE can write to Monad and how often it can trigger. If it can't reach Monad, this bounty is dropped.
 
-### 5.6 Parallelism benchmark
+### 5.5 Nansen — MEV radar (`/radar`)
+- `bots/src/radar.ts` scans swap events of the busiest Monad **mainnet** AMM pools over a recent window and flags same-block *attacker buy → victim buy → attacker sell* patterns.
+- Victim loss = actual cost minus the cost without the front-run (replayed against the pool reserves).
+- Attacker and victim addresses are labelled through the Nansen API (entity labels, smart-money tags). The API key stays server-side (script output `radar.json`, or a Next.js route handler); it never reaches the browser.
+- `/radar` shows total extracted, victims, top attackers with their Nansen labels, and "the same trade on Metronome: 0 loss".
+- **Gate:** Nansen must cover Monad (or allow cross-chain labels) and give us a key. Rules: [`tracks/bounty-nansen.md`](../tracks/bounty-nansen.md).
+
+### 5.6 Envio — indexer (`indexer/`)
+- HyperIndex over Metronome events: `OrderPlaced`, `BatchSettled`, `Claimed`, `OrderCancelled`, `PoolUpdated`, `SettleRewardPaid` → entities `Order`, `Batch`, `Trader`, `Pool`, `Keeper`, `DailyStats`, served as GraphQL.
+- Used by `/stats` (volume, batches, traders, fill time, gas, keeper leaderboard, price chart) and full portfolio history. Public RPCs cap `eth_getLogs` at ~100 blocks, so this history isn't practical over RPC.
+- Optional: if the indexer is down, pages fall back to RPC reads.
+- **Gate:** HyperIndex must support Monad. Rules: [`tracks/bounty-envio.md`](../tracks/bounty-envio.md).
+
+### 5.7 Parallelism benchmark
 - Script funds 200 wallets and sends N `placeOrder` txs as fast as possible into the same blocks, against two deployments: K=1 and K=16.
 - Measure: orders included per block, time to inclusion, and gas. If a local Monad node exposes execution stats, add re-execution counts.
 - **Honesty rule:** publish whatever the numbers show. If the difference is small, say so and explain why.
@@ -273,4 +294,4 @@ Target: 100% line coverage on `Metronome.sol` and the libs.
 - Owner can pause placing orders. **Claims always keep working**, so funds can't get stuck.
 
 ## 8. Explicitly out of scope
-Multiple markets, a router, an indexer, native-token escrow, and the Arc deployment (parked).
+Multiple markets, a router, native-token escrow, and the Arc deployment (parked). Privy is dropped (Mera replaces it).

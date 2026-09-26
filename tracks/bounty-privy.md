@@ -1,5 +1,7 @@
 # Privy — Integration bounty ($5,000)
 
+> **Dropped (Sep 26).** Login moves to Mera (required by the Agora bounty). Kept for reference. The app ID `cmui208va006j0djv8197g0ax` is unused once Mera replaces Privy.
+
 > ⚠️ **Official requirements are TBC.** Copy the exact wording from the hackathon dashboard here.
 > One known rule from public sources: **"Integrate Privy beyond authentication — login-only integrations will not qualify."**
 
