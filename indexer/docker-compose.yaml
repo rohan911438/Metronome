@@ -1,0 +1,69 @@
+# Metronome indexer: Postgres + Hasura (GraphQL at http://localhost:8080/v1/graphql) + the Envio indexer.
+#   Local Anvil stack (pnpm dev:local running):  docker compose up --build
+#   Monad testnet:  ENVIO_CONFIG=config.yaml ENVIO_API_TOKEN=... docker compose up --build
+# Based on github.com/enviodev/local-docker-example.
+services:
+  envio-postgres:
+    image: postgres:17.5
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${ENVIO_PG_PORT:-5433}:5432"
+    volumes:
+      - envio-storage:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: ${ENVIO_PG_PASSWORD:-testing}
+      POSTGRES_USER: ${ENVIO_PG_USER:-postgres}
+      POSTGRES_DB: ${ENVIO_PG_DATABASE:-envio-dev}
+  graphql-engine:
+    image: hasura/graphql-engine:v2.43.0
+    ports:
+      - "127.0.0.1:${HASURA_EXTERNAL_PORT:-8080}:8080"
+    user: 1001:1001
+    depends_on:
+      - envio-postgres
+    restart: unless-stopped
+    environment:
+      HASURA_GRAPHQL_DATABASE_URL: postgres://${ENVIO_PG_USER:-postgres}:${ENVIO_PG_PASSWORD:-testing}@envio-postgres:5432/${ENVIO_PG_DATABASE:-envio-dev}
+      HASURA_GRAPHQL_ENABLE_CONSOLE: "true"
+      HASURA_GRAPHQL_NO_OF_RETRIES: 10
+      HASURA_GRAPHQL_ADMIN_SECRET: ${HASURA_GRAPHQL_ADMIN_SECRET:-testing}
+      HASURA_GRAPHQL_STRINGIFY_NUMERIC_TYPES: "true"
+      # Reads are public (the app queries without a secret); writes need the admin secret.
+      HASURA_GRAPHQL_UNAUTHORIZED_ROLE: public
+      HASURA_GRAPHQL_CORS_DOMAIN: "*"
+      PORT: 8080
+    healthcheck:
+      test: timeout 1s bash -c ':> /dev/tcp/127.0.0.1/8080' || exit 1
+      interval: 5s
+      timeout: 2s
+      retries: 50
+      start_period: 5s
+  envio-indexer:
+    build: .
+    depends_on:
+      graphql-engine:
+        condition: service_healthy
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      ENVIO_CONFIG: ${ENVIO_CONFIG:-config.local.yaml}
+      ENVIO_LOCAL_RPC_URL: ${ENVIO_LOCAL_RPC_URL:-http://host.docker.internal:8545}
+      ENVIO_API_TOKEN: ${ENVIO_API_TOKEN:-}
+      ENVIO_PG_PASSWORD: ${ENVIO_PG_PASSWORD:-testing}
+      ENVIO_PG_HOST: envio-postgres
+      ENVIO_PG_PORT: 5432
+      ENVIO_PG_USER: ${ENVIO_PG_USER:-postgres}
+      ENVIO_PG_DATABASE: ${ENVIO_PG_DATABASE:-envio-dev}
+      ENVIO_PG_PUBLIC_SCHEMA: ${ENVIO_PG_PUBLIC_SCHEMA:-envio}
+      ENVIO_INDEXER_HOST: 0.0.0.0
+      ENVIO_INDEXER_PORT: 9898
+      HASURA_GRAPHQL_ENDPOINT: http://graphql-engine:8080/v1/metadata
+      HASURA_GRAPHQL_ADMIN_SECRET: ${HASURA_GRAPHQL_ADMIN_SECRET:-testing}
+      HASURA_SERVICE_HOST: graphql-engine
+      HASURA_SERVICE_PORT: 8080
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_STRATEGY: console-pretty
+      TUI_OFF: "true"
+volumes:
+  envio-storage:

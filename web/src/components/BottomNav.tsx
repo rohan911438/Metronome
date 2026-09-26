@@ -20,8 +20,13 @@ const TABS = [
     icon: <path d="M4 7h16v12H4zM8 7V5h8v2M4 12h16" />,
   },
   {
+    href: "/stats",
+    label: "Stats",
+    icon: <path d="M5 20V11M12 20V5M19 20v-7M3 20h18" />,
+  },
+  {
     href: "/lab",
-    label: "Sandwich lab",
+    label: "Lab",
     icon: <path d="M9 3h6M10 3v6l-5 9a2 2 0 002 3h10a2 2 0 002-3l-5-9V3M7.5 14h9" />,
   },
 ];

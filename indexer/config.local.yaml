@@ -1,0 +1,21 @@
+# yaml-language-server: $schema=./node_modules/envio/evm.schema.json
+# Metronome on the local Anvil stack (pnpm dev:local). Addresses are deterministic on a fresh Anvil.
+name: metronome
+description: Metronome batch-auction exchange (local)
+contracts:
+  - name: Metronome
+    events:
+      - event: "OrderPlaced(bytes32 indexed orderId, address indexed owner, uint256 indexed batchId, bool isBuy, bool resting, uint16 tick, uint128 size, uint128 escrow, uint256 shard)"
+      - event: "BatchSettled(uint256 indexed batchId, uint16 clearingTick, uint256 price, uint128 volume, uint8 rationed, uint128 fillNum, uint128 fillDen, bool voided)"
+      - event: "PoolUpdated(bool indexed isBuy, uint16 indexed tick, uint32 gen, uint128 remaining)"
+      - event: "Claimed(bytes32 indexed orderId, address indexed owner, uint256 baseOut, uint256 quoteOut, bool closed)"
+      - event: "OrderCancelled(bytes32 indexed orderId, address indexed owner, uint256 baseOut, uint256 quoteOut)"
+      - event: "SettleRewardPaid(uint256 indexed batchId, address indexed settler, uint256 amount)"
+chains:
+  - id: 31337
+    start_block: 0
+    # Anvil runs on the host; docker-compose.yaml points this at host.docker.internal:8545.
+    rpc: ${ENVIO_LOCAL_RPC_URL} # set by docker-compose.yaml
+    contracts:
+      - name: Metronome
+        address: "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"

@@ -5,7 +5,9 @@
  * Wire units: prices and sizes are integers scaled by the market's `price_decimals` / `size_decimals`; amounts are
  * decimal strings in collateral-token units (AUSD, 6 decimals); fees and funding rates are micros (10^-6).
  */
-import { useEffect, useRef, useState } from "react";
+import { usePoll } from "./poll";
+
+export { usePoll };
 
 const API = "/api/perpl/v1";
 
@@ -102,46 +104,6 @@ export const amount = (v: string, decimals = 6) => Number(v) / 10 ** decimals;
 /** Show MON first, then the rest in Perpl's order; hide closed markets. */
 export const sortMarkets = (ms: PerplMarket[]) =>
   ms.filter((m) => m.config.is_open).sort((a, b) => Number(b.symbol === "MON") - Number(a.symbol === "MON"));
-
-/**
- * Runs `load` now and every `ms` while the page is visible, never overlapping itself. Keeps the last good value;
- * resets when `key` changes.
- */
-export function usePoll<T>(load: () => Promise<T>, ms: number, key: string | number | null) {
-  const [data, setData] = useState<T>();
-  const [error, setError] = useState<string>();
-  const loadRef = useRef(load);
-  loadRef.current = load;
-
-  useEffect(() => {
-    if (key === null) return;
-    let alive = true;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    setData(undefined);
-    setError(undefined);
-    const tick = async () => {
-      if (document.visibilityState === "visible") {
-        try {
-          const d = await loadRef.current();
-          if (alive) {
-            setData(d);
-            setError(undefined);
-          }
-        } catch (e) {
-          if (alive) setError((e as Error).message);
-        }
-      }
-      if (alive) timer = setTimeout(tick, ms);
-    };
-    void tick();
-    return () => {
-      alive = false;
-      clearTimeout(timer);
-    };
-  }, [key, ms]);
-
-  return { data, error };
-}
 
 export function fmtNum(n: number, dp = 2): string {
   if (!Number.isFinite(n)) return "—";

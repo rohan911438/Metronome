@@ -1,0 +1,126 @@
+# Metronome indexer. Amounts are raw token units: base (WMON) has 18 decimals, quote (AUSD) 6.
+# `price` is the contract's 1e36-scaled raw quote per raw base; quote volume = volume * price / 1e36.
+
+"""Exchange-wide totals, one row with id "global"."""
+type Stats {
+  id: ID!
+  orders: Int!
+  takerOrders: Int!
+  restingOrders: Int!
+  traders: Int!
+  batchesSettled: Int!
+  batchesWithTrades: Int!
+  voidedBatches: Int!
+  volumeBase: BigInt!
+  volumeQuote: BigInt!
+  claims: Int!
+  cancels: Int!
+  keeperRewards: BigInt!
+  "Blocks from an order's batch to its settlement, summed over settled batches that had orders."
+  settleDelayBlocksSum: BigInt!
+  settleDelaySamples: Int!
+  "Gas per transaction, by the first Metronome event in it (placeOrder, settle / settleAndClaim, claim, cancel)."
+  gasPlaceSum: BigInt!
+  gasPlaceTxs: Int!
+  gasSettleSum: BigInt!
+  gasSettleTxs: Int!
+  gasClaimSum: BigInt!
+  gasClaimTxs: Int!
+  gasCancelSum: BigInt!
+  gasCancelTxs: Int!
+  lastBlock: Int!
+  lastTimestamp: Int!
+}
+
+"""Totals per UTC day; id is the date, e.g. "2026-10-09"."""
+type DailyStats {
+  id: ID!
+  dayStart: Int!
+  orders: Int!
+  newTraders: Int!
+  batchesWithTrades: Int!
+  volumeBase: BigInt!
+  volumeQuote: BigInt!
+}
+
+type Trader {
+  "Lowercase address."
+  id: ID!
+  orders: Int!
+  restingOrders: Int!
+  "Everything paid out to the trader by claims and cancels (fills plus refunds)."
+  baseReceived: BigInt!
+  quoteReceived: BigInt!
+  firstBlock: Int!
+  lastBlock: Int!
+  orderList: [Order!]! @derivedFrom(field: "trader")
+}
+
+type Order {
+  "The contract's orderId."
+  id: ID!
+  trader: Trader!
+  batchId: BigInt! @index
+  isBuy: Boolean!
+  resting: Boolean!
+  tick: Int!
+  size: BigInt!
+  escrow: BigInt!
+  shard: Int!
+  placedBlock: Int!
+  placedAt: Int!
+  placedTx: String!
+  "open → claimed (a taker order or a fully filled resting one) or cancelled; a resting order can claim several times first."
+  status: String! @index
+  claims: Int!
+  baseOut: BigInt!
+  quoteOut: BigInt!
+  closedBlock: Int
+}
+
+"""One batch (= the block its orders were placed in). Created by its first order or by its settlement."""
+type Batch {
+  id: BigInt!
+  orders: Int!
+  settled: Boolean! @index
+  clearingTick: Int!
+  price: BigInt!
+  volume: BigInt!
+  volumeQuote: BigInt!
+  "0 none, 1 buyers rationed, 2 sellers rationed."
+  rationed: Int!
+  fillNum: BigInt!
+  fillDen: BigInt!
+  voided: Boolean!
+  settledBlock: Int
+  settledAt: Int @index
+  settleTx: String
+  settler: String
+  reward: BigInt!
+}
+
+type Keeper {
+  "Lowercase address that sent settle transactions (from the tx sender, so it works without a settle reward)."
+  id: ID!
+  batchesSettled: Int!
+  rewards: BigInt!
+  lastBlock: Int!
+}
+
+"""A resting pool: all resting orders on one side at one tick."""
+type Pool {
+  "buy-<tick> or sell-<tick>"
+  id: ID!
+  isBuy: Boolean!
+  tick: Int!
+  gen: Int!
+  remaining: BigInt!
+  updatedBlock: Int!
+}
+
+"""Marks a transaction whose gas has been counted, so a tx with many events counts once."""
+type GasTx {
+  id: ID!
+  kind: String!
+  gasUsed: BigInt!
+}

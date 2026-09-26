@@ -4,8 +4,11 @@
 > This is the all-teams $1,000 cash bounty. Envio's separate "for winning teams" perk (free Envio Cloud hosting) is non-cash and not a target.
 
 ## Open questions
-- [ ] Confirm HyperIndex / HyperSync support Monad testnet (10143) and mainnet (143)
+- [x] HyperSync supports Monad testnet (`monad-testnet.hypersync.xyz`, at chain head on Sep 26) and mainnet. Outside Envio Cloud it needs a free API token (`ENVIO_API_TOKEN`)
 - [ ] Is hosting on Envio Cloud required, or is a self-run indexer enough?
+
+## Status (Sep 26)
+Built and running against the local Anvil stack (see `indexer/README.md`), feeding the `/stats` page. Next: a token or Envio Cloud for testnet.
 
 ## What we build: Metronome indexer (`indexer/`)
 

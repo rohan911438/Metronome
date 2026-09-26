@@ -73,8 +73,10 @@ Solo build. Design: [`architecture.md`](architecture.md). Submission target **Oc
 
 ### Phase 5 — Sponsor integrations + benchmark (Oct 8–10)
 - [ ] **Oct 8 — Chainlink CRE:** `metronome-heartbeat` workflow (cron trigger → find pending batches → `settleAndClaim`); simulate locally, then deploy to testnet
-- [ ] **Oct 9 — Envio indexer** (`indexer/`, HyperIndex): entities `Order`, `Batch`, `Trader`, `Pool`, `Keeper`, `DailyStats` from `OrderPlaced`, `BatchSettled`, `Claimed`, `OrderCancelled`, `PoolUpdated`, `SettleRewardPaid`; run locally against Anvil, then host for testnet (Envio Cloud)
-- [ ] **Oct 9 — `/stats` page** from the indexer (volume, batches, trades, traders, fill time, gas per action, keeper leaderboard, clearing-price chart); portfolio history from the indexer with RPC fallback
+- [x] **Envio indexer** (done Sep 26): `indexer/`, HyperIndex 3.13 in Docker (Envio has no Windows build) with Postgres + Hasura; entities `Stats`, `DailyStats`, `Batch`, `Order`, `Trader`, `Keeper`, `Pool`, `GasTx`. Runs against the local Anvil stack; totals match raw chain logs exactly. CI job `indexer.yml` (codegen + typecheck for both configs)
+- [ ] Indexer on testnet: needs an Envio API token (free, envio.dev) or Envio Cloud, and trading activity on the testnet market (M2)
+- [x] **`/stats` page** (done Sep 26): volume, batches, orders, traders, order-to-settlement delay, gas per action, keeper leaderboard, clearing-price chart, daily volume; live from the indexer, explains itself when no indexer is configured. Validated in headless Edge: 11/11
+- [ ] Portfolio history from the indexer with RPC fallback
 - [ ] **Oct 10 — Nansen MEV radar:** `bots/src/radar.ts` scans the busiest Monad mainnet AMM pools for same-block sandwiches and computes each victim's loss; labels attackers/victims via the Nansen API (key server-side only); writes `radar.json`; `/radar` page
 - [ ] **Oct 10 — benchmark** K=1 vs K=16 with 200 wallets; results on `/stats` → M4
 

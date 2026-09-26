@@ -1,0 +1,19 @@
+# yaml-language-server: $schema=./node_modules/envio/evm.schema.json
+# Metronome on Monad testnet. Local Anvil: config.local.yaml. Run with Docker: see README.md.
+name: metronome
+description: Metronome batch-auction exchange
+contracts:
+  - name: Metronome
+    events:
+      - event: "OrderPlaced(bytes32 indexed orderId, address indexed owner, uint256 indexed batchId, bool isBuy, bool resting, uint16 tick, uint128 size, uint128 escrow, uint256 shard)"
+      - event: "BatchSettled(uint256 indexed batchId, uint16 clearingTick, uint256 price, uint128 volume, uint8 rationed, uint128 fillNum, uint128 fillDen, bool voided)"
+      - event: "PoolUpdated(bool indexed isBuy, uint16 indexed tick, uint32 gen, uint128 remaining)"
+      - event: "Claimed(bytes32 indexed orderId, address indexed owner, uint256 baseOut, uint256 quoteOut, bool closed)"
+      - event: "OrderCancelled(bytes32 indexed orderId, address indexed owner, uint256 baseOut, uint256 quoteOut)"
+      - event: "SettleRewardPaid(uint256 indexed batchId, address indexed settler, uint256 amount)"
+chains:
+  - id: 10143 # Monad testnet, via HyperSync (needs ENVIO_API_TOKEN outside Envio Cloud)
+    start_block: 65622114 # Metronome v2 deploy block, contracts/deployments/10143.json
+    contracts:
+      - name: Metronome
+        address: "0x99E4DBCF8edE8092Be972307eB3d0Cd91ecBa889"
