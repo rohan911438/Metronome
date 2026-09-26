@@ -10,7 +10,8 @@
     "dev:local": "tsx src/dev-local.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "perpl:fork": "tsx src/perpl-fork.ts"
+    "perpl:fork": "tsx src/perpl-fork.ts",
+    "taker": "tsx src/taker.ts"
   },
   "dependencies": {
     "dotenv": "17.2.3",

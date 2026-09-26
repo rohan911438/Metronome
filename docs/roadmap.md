@@ -49,7 +49,8 @@ Solo build. Design: [`architecture.md`](architecture.md). Submission target **Oc
 - [x] MM bot: resting ladder, re-quote on price moves, inventory limits (single wallet for now)
 - [x] Local end-to-end test (Anvil) in CI: 60 random takers, 55 filled, 0 bot errors
 - [x] `MiniAMM.sol` + `SandwichLab.sol` (tests: AMM victim −4.17%, Metronome victim 0)
-- [ ] Run keeper + MM + sandwich on testnet → M2. The AUSD faucet is empty, so: redeploy the testnet market as **WMON/USDC** (deployer holds 20 testnet USDC + 6.5 MON); mainnet stays WMON/AUSD. The AUSD balance Agora wants comes from the AUSD token (and Perpl collateral on mainnet), not the testnet market. **Waiting for the user's OK**
+- [x] Testnet market redeployed as **WMON/USDC** (Sep 26, `0x32f1…3761`; mainnet stays WMON/AUSD); keeper + MM + `pnpm taker` ran live: 3 fills between two wallets (see `docs/network.md`)
+- [ ] SandwichLab + MiniAMM on testnet (rest of M2); limited by testnet MON (4.08 left)
 - [x] `pnpm dev:local`: long-running local stack (Anvil + deploy + keeper + MM + background traders + one lab run) for frontend work
 
 ### Phase 4 — Frontend + Mera (done Sep 26, ahead of schedule)

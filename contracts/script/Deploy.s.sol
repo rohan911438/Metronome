@@ -21,7 +21,7 @@ function priceMinAt(uint256 refPriceE18, uint8 baseDecimals, uint8 quoteDecimals
 
 /// @notice Deploys one Metronome market and writes its config to deployments/<chainId>.json.
 /// @dev Config via env (all optional on testnet):
-///      BASE_TOKEN, QUOTE_TOKEN   token addresses (testnet defaults: WMON, AUSD)
+///      BASE_TOKEN, QUOTE_TOKEN   token addresses (testnet defaults: WMON, AUSD; the live testnet market uses Circle USDC)
 ///      REF_PRICE_E18             reference price of 1 base in quote, 18 decimals; placed at tick 2048 (default 0.025)
 ///      SHARDS                    book shards per batch (default 16)
 ///      MIN_ORDER_SIZE            base units (default 1e18 = 1 MON)
@@ -78,6 +78,9 @@ contract Deploy is Script {
         vm.serializeAddress(obj, "address", address(m));
         vm.serializeAddress(obj, "base", address(m.BASE()));
         vm.serializeAddress(obj, "quote", address(m.QUOTE()));
+        // The app labels balances and prices with these (testnet may quote in USDC, mainnet in AUSD).
+        vm.serializeString(obj, "quoteSymbol", IERC20Metadata(address(m.QUOTE())).symbol());
+        vm.serializeUint(obj, "quoteDecimals", IERC20Metadata(address(m.QUOTE())).decimals());
         vm.serializeAddress(obj, "owner", owner);
         vm.serializeUint(obj, "priceMin", m.PRICE_MIN());
         vm.serializeUint(obj, "shards", m.SHARDS());

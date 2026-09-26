@@ -31,6 +31,8 @@ async function fundLocal(to: `0x${string}`) {
  * mint and its balance slot isn't discoverable, so it can't be dealt). The Perpl exchange holds millions.
  */
 const FORK_QUOTE_HOLDER: Address = "0x1964c32f0be608e7d29302aff5e61268e72080cc";
+/** Testnet AUSD, Perpl's collateral (the testnet Metronome market itself quotes in USDC). */
+const FORK_AUSD: Address = "0xa9012a055bd4e0eDfF8Ce09f960291C09D5322dC";
 
 async function fundFork(to: Address) {
   const rpc = (method: string, params: unknown[]) => publicClient.request({ method: method as never, params: params as never });
@@ -40,10 +42,10 @@ async function fundFork(to: Address) {
   try {
     const holder = createWalletClient({ account: FORK_QUOTE_HOLDER, chain, transport: http(rpcUrl) });
     const hash = await holder.writeContract({
-      address: deployment.quote,
+      address: FORK_AUSD,
       abi: erc20Abi,
       functionName: "transfer",
-      args: [to, parseUnits("1000", QUOTE.decimals)],
+      args: [to, parseUnits("1000", 6)],
     });
     await publicClient.waitForTransactionReceipt({ hash });
   } finally {
@@ -168,7 +170,7 @@ export function AccountSheet({ onClose }: { onClose: () => void }) {
                   {funding
                     ? "Funding…"
                     : isFork
-                      ? `Get test funds on this fork (100 MON, 1,000 ${QUOTE.symbol})`
+                      ? "Get test funds on this fork (100 MON, 1,000 AUSD)"
                       : `Get test funds (100 MON, 500k ${BASE.symbol}, 20k ${QUOTE.symbol})`}
                 </button>
                 {fundError && <p className="mt-2 break-words text-xs text-sell">{fundError}</p>}

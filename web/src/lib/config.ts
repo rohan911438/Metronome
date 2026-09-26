@@ -34,6 +34,8 @@ export interface Deployment {
   deployBlock: bigint;
   miniAmm?: Address;
   sandwichLab?: Address;
+  quoteSymbol: string;
+  quoteDecimals: number;
 }
 
 function load(): Deployment {
@@ -49,14 +51,20 @@ function load(): Deployment {
     deployBlock: BigInt(raw.deployBlock),
     miniAmm: "miniAmm" in raw ? raw.miniAmm : undefined,
     sandwichLab: "sandwichLab" in raw ? raw.sandwichLab : undefined,
+    // Deployments before the quote token was recorded are AUSD (or the local 6-decimal mock).
+    quoteSymbol: "quoteSymbol" in raw ? raw.quoteSymbol : "AUSD",
+    quoteDecimals: "quoteDecimals" in raw ? Number(raw.quoteDecimals) : 6,
   };
 }
 
 export const deployment = load();
 
-/** Token metadata. The quote asset is AUSD on testnet and mainnet (a mock with the same decimals locally). */
+/**
+ * Token metadata. The quote asset is AUSD on mainnet, Circle USDC on testnet (AUSD's testnet faucet is empty), and a
+ * 6-decimal mock locally; the deployment records which.
+ */
 export const BASE = { symbol: "WMON", native: "MON", decimals: 18 } as const;
-export const QUOTE = { symbol: "AUSD", decimals: 6 } as const;
+export const QUOTE = { symbol: deployment.quoteSymbol, decimals: deployment.quoteDecimals };
 
 export const publicClient = createPublicClient({
   chain,

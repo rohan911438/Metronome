@@ -15,7 +15,8 @@ Verified values the code and bots rely on. **"Verified"** means checked with an 
 |---|---|---|---|
 | **AUSD** (quote) | `0xa9012a055bd4e0eDfF8Ce09f960291C09D5322dC` (verified) | `0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a` | 6 (verified) |
 | **WMON** (base) | `0xFb8bf4c1CC7a94c73D209a149eA2AbEa852BC541` (verified) | TBC | 18 (verified) |
-| AUSD faucet | `0xd236c18D274E54FAccC3dd9DDA4b27965a73ee6C` (has code) | — | — |
+| AUSD faucet | `0xd236c18D274E54FAccC3dd9DDA4b27965a73ee6C` (has code, empty) | — | — |
+| **USDC** (Circle; testnet quote since Sep 26) | `0x534b2f3A21130d7a60830c2Df862319e593943A3` (verified) | `0x754704Bc059F8C67012fEd69BC8A327a5aafb603` | 6 (verified) |
 
 The old testnet WMON address `0x760AfE86e5de5fa0Ee542fc7B7B713e1c5425701` has **no code**. Don't use it.
 
@@ -23,12 +24,15 @@ The old testnet WMON address `0x760AfE86e5de5fa0Ee542fc7B7B713e1c5425701` has **
 
 | | Testnet |
 |---|---|
-| **Metronome v2 (WMON/AUSD), current** | [`0x99E4DBCF8edE8092Be972307eB3d0Cd91ecBa889`](https://testnet.monadscan.com/address/0x99E4DBCF8edE8092Be972307eB3d0Cd91ecBa889) (block 65,622,114): taker + resting orders |
+| **Metronome v2 (WMON/USDC), current** | [`0x32f11865b2272B24f0F8174598EA64A82fc63761`](https://testnet.monadscan.com/address/0x32f11865b2272B24f0F8174598EA64A82fc63761) (block 65,885,642): same contract as v2, quoted in Circle USDC because testnet AUSD can't be obtained |
+| Metronome v2 (WMON/AUSD), retired | [`0x99E4DBCF8edE8092Be972307eB3d0Cd91ecBa889`](https://testnet.monadscan.com/address/0x99E4DBCF8edE8092Be972307eB3d0Cd91ecBa889) (block 65,622,114) |
 | Metronome v1 (retired) | [`0xd9eD8A732D8daE96855b40e1ebD65E9d36583ea1`](https://testnet.monadscan.com/address/0xd9eD8A732D8daE96855b40e1ebD65E9d36583ea1) (block 65,615,597): taker orders only |
-| Config | 16 shards, tick 2048 = 0.025 AUSD, min order 1 MON, fee 5 bps |
+| Config | 16 shards, tick 2048 = 0.025 USDC (AUSD on mainnet), min order 1 MON, fee 5 bps |
 | Owner / deployer | `0x0D350bc1b4102732cFe243f80fe693f428572373` |
 
 Machine-readable copy: `contracts/deployments/10143.json`.
+
+**Live run on the WMON/USDC market (Sep 26):** keeper + market maker (2 levels a side, 1 MON) from the deployer, 4 taker orders from a separate wallet (`0xE4B1…D1a2`, `pnpm taker`). 3 filled, each settled 1–2 blocks after it was placed ([buy](https://testnet.monadscan.com/tx/0xde683349f9661c443e28d796c983afe4bcf2f00f735ad1107fa7a7f141354068), [sell](https://testnet.monadscan.com/tx/0xcab35e6cda2fa2210c9a80f812d924db76f226f2267ed36645bf291148f22376), [buy](https://testnet.monadscan.com/tx/0x45561c9eef646510a70ea191113f919a501fd143f0ae4f46bc11c98b545e5725)). The 4th (a sell) landed in the block where the MM re-quoted: the new bids join the book only when their batch settles, so it cleared empty and was refunded in full. The session cost the deployer ~1.2 MON; 4.08 MON left, so the bots run for demos, not around the clock.
 
 **Smoke tests (Sep 25):**
 - v1: wrap → place sell 1 WMON → settle (no buyers, volume 0) → claim returned exactly 1 WMON; contract left holding 0.
