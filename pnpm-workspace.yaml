@@ -1,6 +1,11 @@
 packages:
   - bots
+  - web
 
 # tsx needs esbuild's install script (it fetches the platform binary).
 allowBuilds:
+  '@reown/appkit': set this to true or false
+  bufferutil: set this to true or false
   esbuild: true
+  keccak: set this to true or false
+  utf-8-validate: set this to true or false

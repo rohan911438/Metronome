@@ -1,0 +1,29 @@
+name: web
+
+on:
+  push:
+    branches: [main]
+    paths: ["web/**", "bots/src/abi.ts", "contracts/deployments/**", "pnpm-lock.yaml", ".github/workflows/web.yml"]
+  pull_request:
+    paths: ["web/**", "bots/src/abi.ts", "contracts/deployments/**", "pnpm-lock.yaml", ".github/workflows/web.yml"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      NEXT_TELEMETRY_DISABLED: 1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Generated ABIs and addresses are up to date
+        run: pnpm --filter @metronome/web sync && git diff --exit-code web/src/generated
+      - run: pnpm --filter @metronome/web typecheck
+      - name: Build (testnet config)
+        run: pnpm --filter @metronome/web build
+        env:
+          NEXT_PUBLIC_NETWORK: testnet
