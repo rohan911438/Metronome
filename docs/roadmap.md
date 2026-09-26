@@ -79,7 +79,8 @@ Solo build. Design: [`architecture.md`](architecture.md). Submission target **Oc
 - [x] **`/stats` page** (done Sep 26): volume, batches, orders, traders, order-to-settlement delay, gas per action, keeper leaderboard, clearing-price chart, daily volume; live from the indexer, explains itself when no indexer is configured. Validated in headless Edge: 11/11
 - [ ] Portfolio history from the indexer with RPC fallback
 - [ ] **Oct 10 — Nansen MEV radar:** `bots/src/radar.ts` scans the busiest Monad mainnet AMM pools for same-block sandwiches and computes each victim's loss; labels attackers/victims via the Nansen API (key server-side only); writes `radar.json`; `/radar` page
-- [ ] **Oct 10 — benchmark** K=1 vs K=16 with 200 wallets; results on `/stats` → M4
+- [x] **Benchmark** K=1/4/16 with 200 wallets (done Sep 26, [docs/benchmark.md](benchmark.md)): sharding cuts Metronome's conflict chain 24 → 10, but escrow `transferFrom` into one exchange balance keeps the whole-tx chain at ~100 for any K, and K=16 costs 3.2× settle gas
+- [ ] Decide mainnet K (small K recommended while escrow is in the hot path); consider internal per-user balances to take escrow out of the shared slot
 
 ### Phase 6 — Ship (Oct 11–12)
 - [ ] Oct 11: security self-review (checklist in architecture §7, incl. a fork test against real WMON/AUSD), mainnet deploy + verify, seed liquidity, point the indexer and app at mainnet → M5

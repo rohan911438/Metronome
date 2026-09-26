@@ -6,7 +6,7 @@ Metronome is a fully onchain **frequent batch auction** exchange on Monad. Every
 |---|---|---|---|---|
 | 1 | **Track 01 — Onchain Finance & Trading** (main) | $10k (1 of 3 winners, from $30k) | Applying | [01-onchain-finance-and-trading.md](01-onchain-finance-and-trading.md) |
 | 2 | **Grand Champion** (all tracks) | $25k | Auto-considered | [grand-champion.md](grand-champion.md) |
-| 3 | **Agora — Best Mobile Trading App** | $10k | Applying (official rules copied) | [bounty-agora-mobile-trading.md](bounty-agora-mobile-trading.md) |
+| 3 | **Agora — Best Mobile Trading App** | $10k | Applying; paused until Agora replies about testnet AUSD (official rules copied) | [bounty-agora-mobile-trading.md](bounty-agora-mobile-trading.md) |
 | 4 | **Perpl — Best use of Perpl's API** (perps tab) | $5k | Applying (rules TBC) | [bounty-perpl.md](bounty-perpl.md) |
 | 5 | **Mera — Best Mera-Powered UX** | $2.5k | Applying (rules TBC) | [bounty-mera.md](bounty-mera.md) |
 | 6 | **Mera — One Passkey, Many Keys** | $2.5k | Applying (rules TBC) | [bounty-mera.md](bounty-mera.md) |

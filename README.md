@@ -7,7 +7,7 @@
 A fully onchain **frequent batch auction** exchange. No offchain matching engine, no solvers, no sequencer to trust.
 Front-running and sandwich attacks stop working because **the order of transactions inside a block no longer matters.**
 
-[Why](#the-problem) · [How it works](#how-it-works) · [Why Monad](#why-this-only-works-on-monad) · [Architecture](docs/architecture.md) · [Roadmap](docs/roadmap.md) · [Status](#status)
+[Why](#the-problem) · [How it works](#how-it-works) · [Why Monad](#why-this-only-works-on-monad) · [Tracks](#tracks-and-bounties) · [Integrations](#integrations) · [Status](#status) · [Architecture](docs/architecture.md) · [Roadmap](docs/roadmap.md)
 
 *Built for [Monad Metropolis](https://monad.xyz/developers/hackathons/metropolis) · Track 01: Onchain Finance & Trading*
 
@@ -79,7 +79,11 @@ Monad executes transactions in parallel and re-runs ones that touched the same s
 - **Sharded buckets:** each batch's order book is split into K shards, and each user writes to their own shard. Orders from different users don't collide.
 - **No global counters:** order IDs come from a per-user nonce, so placing an order touches only your own storage and your shard.
 - **Page-aware layout:** price levels sit in a contiguous array, so neighbouring prices share a Monad storage page and settling reads fewer pages.
-- **Measured, not claimed:** we'll publish a K=1 vs K=16 benchmark, whatever it shows.
+- **Measured, not claimed:** [our shard benchmark](docs/benchmark.md) (200 orders in one batch) shows sharding cuts
+  the chain of conflicting orders in Metronome's storage from 24 (K=1) to 10 (K=16). It also shows what still
+  serializes: every order's escrow transfer writes the exchange's token balance, which keeps the whole-transaction
+  chain at ~100 for any K, while K=16 costs 3.2× the settle gas. The next step it points to is escrow from internal
+  per-user balances.
 
 ## What makes it different
 
@@ -97,22 +101,41 @@ Monad executes transactions in parallel and re-runs ones that touched the same s
 A mobile-first trading app designed for people who have never used a wallet:
 
 - **Log in with Face ID.** Your wallet comes from your passkey ([Mera](https://mera.category.xyz)): no seed phrase, no popups, no custody server.
-- **One tap to trade** MON against a dollar stablecoin (AUSD on mainnet). Every trade shows its batch and clearing price.
+- **One tap to trade** MON against a dollar stablecoin (AUSD on mainnet, Circle USDC on testnet). Every trade shows its batch and clearing price.
 - **Filled within about a second.** Funds arrive automatically; there is no "claim" button to find.
 - **See the auction live:** supply and demand curves animate and cross every block.
 - **Sandwich lab:** run the same attack against an AMM and against Metronome, side by side, and watch the victim's loss.
+- **Perps tab:** Perpl's perpetual futures markets (live prices, candles, order book) and opening a Perpl account from the same passkey wallet.
+- **Stats:** all-time volume, batches, traders, time to settlement, gas per action and keepers, from our Envio indexer.
+
+## Tracks and bounties
+
+One main track, plus sponsor bounties that the same product qualifies for. Details and official rules: [`tracks/`](tracks/README.md).
+
+| Prize | What we submit | Status |
+|---|---|---|
+| **Track 01 — Onchain Finance & Trading** | Metronome itself: the batch-auction exchange, app and bots | Building; live on testnet |
+| **Grand Champion** | The same project (considered automatically) | — |
+| **Mera — Best Mera-Powered UX** | Face ID login, popup-free signing in the app | Integrated |
+| **Mera — One Passkey, Many Keys** | One passkey derives the wallet key, the Perpl API key and an encryption key | Integrated |
+| **Envio — Best Use of Envio** | Indexer behind the Stats page | Integrated (local chain); testnet needs an API token |
+| **Perpl — Best use of Perpl's API** | Perps tab: market data and account setup in-app | Partly integrated; trading waits on testnet AUSD |
+| **Agora — Best Mobile Trading App** | Mobile app: passkey login, AUSD balance, Metronome and Perpl trades | Paused until Agora replies about testnet AUSD |
+| **Chainlink — Best CRE workflow** | CRE workflow that settles batches | Planned |
+| **Nansen — Best use of Nansen** | MEV radar of real Monad sandwiches, attackers labeled by Nansen | Planned |
 
 ## Integrations
 
-| Partner | Role in Metronome |
-|---|---|
-| **Monad** | Execution layer: 300 ms batches, parallel execution, cheap clearing |
-| **AUSD** ([Agora](https://www.agora.finance)) | Quote asset of the mainnet market and Perpl collateral; balance shown in the app |
-| **Mera** | Passkey login; one passkey derives the wallet key and the Perpl API key; popup-free signing |
-| **Perpl** | Perps tab: trade perpetual futures from the same app, collateral in AUSD |
-| **Chainlink** | CRE workflow as the exchange's heartbeat (settles and pays out every batch); price feed as a circuit breaker |
-| **Nansen** | MEV radar: finds real sandwich attacks on Monad AMMs and labels the attackers |
-| **Envio** | Indexer behind the stats page, trade history and price chart |
+| Partner | Role in Metronome | Status |
+|---|---|---|
+| **Monad** | Execution layer: 300 ms batches, parallel execution, cheap clearing | ✅ Live on testnet |
+| **Mera** | Passkey login; one passkey derives the wallet key, the Perpl API key and a device encryption key; popup-free signing | ✅ In the app |
+| **Envio** | HyperIndex indexer ([`indexer/`](indexer/README.md)) behind the Stats page; totals checked against raw chain logs | ✅ Local chain · ⏳ testnet |
+| **Perpl** | Perps tab: live markets, candles and order book; open a Perpl account (approve, deposit, one-click trading) from the passkey wallet; paste an API key, stored encrypted with the passkey | ✅ Data + account setup · ⏳ trading |
+| **Circle USDC** | Quote asset of the testnet market (testnet AUSD can't be obtained) | ✅ Testnet |
+| **AUSD** ([Agora](https://www.agora.finance)) | Quote asset of the mainnet market and Perpl collateral | ⏳ Mainnet |
+| **Chainlink** | CRE workflow as the exchange's heartbeat (settles and pays out every batch); price feed as a circuit breaker | ⏳ Planned |
+| **Nansen** | MEV radar: finds real sandwich attacks on Monad AMMs and labels the attackers | ⏳ Planned |
 
 ## Where it goes next
 
@@ -131,14 +154,17 @@ Metronome is meant to be **infrastructure**, not a single app:
 | Architecture and roadmap | Sep 25 | ✅ |
 | Core contract with differential fuzz + invariant tests | Oct 1 | ✅ |
 | Resting (maker) orders: post once, fill across batches (90 tests passing) | — | ✅ |
-| Deployed on Monad testnet: [`0x99E4…a889`](https://testnet.monadscan.com/address/0x99E4DBCF8edE8092Be972307eB3d0Cd91ecBa889), taker and resting cycles verified live | Oct 1 | ✅ |
+| Deployed on Monad testnet: WMON/USDC market [`0x32f1…3761`](https://testnet.monadscan.com/address/0x32f11865b2272B24f0F8174598EA64A82fc63761) (earlier WMON/AUSD market retired: no testnet AUSD) | Oct 1 | ✅ |
 | Keeper + market-maker bots; end-to-end test on a local chain (sandwich: AMM victim −527 bps, Metronome 0) | Oct 3 | ✅ |
-| Bots live on testnet (WMON/USDC market on testnet) | Oct 3 | ⏳ |
+| Bots live on testnet: keeper + market maker, 3 taker fills between two wallets, each settled within 1–2 blocks | Oct 3 | ✅ |
 | Mobile web app (Next.js PWA): trade, portfolio, batch explorer, sandwich lab | Oct 3 | ✅ |
 | Mera passkey login (one passkey → wallet key + Perpl key) | Oct 3 | ✅ |
-| Perpl perps tab | Oct 7 | ⏳ |
+| Perpl perps tab: live markets, account setup from the passkey wallet (tested on a fork of testnet against Perpl's contract) | Oct 7 | ✅ |
+| Perpl trading from the app | Oct 7 | ⏳ waiting on testnet AUSD |
 | End-to-end trade on a phone | Oct 7 | ⏳ |
-| Chainlink workflow, Envio indexer + stats page, Nansen MEV radar, parallelism benchmark | Oct 10 | ⏳ |
+| Envio indexer + Stats page | Oct 9 | ✅ |
+| Shard benchmark K=1/4/16 ([results](docs/benchmark.md)) | Oct 10 | ✅ |
+| Chainlink CRE workflow, Nansen MEV radar | Oct 10 | ⏳ |
 | Monad mainnet | Oct 11 | ⏳ |
 
 Contract addresses, test results, gas numbers and the demo video will be added here as they land. Full plan: [`docs/roadmap.md`](docs/roadmap.md).
@@ -149,11 +175,13 @@ Contract addresses, test results, gas numbers and the demo video will be added h
 docs/
   architecture.md   contract design, clearing algorithm, storage layout, testing
   roadmap.md        milestones, day-by-day plan, cut order, risks
-  network.md        verified addresses: tokens, oracles, Chainlink CRE support
-contracts/          Foundry: Metronome.sol, libraries, tests
-bots/               keeper, market maker, local end-to-end test
+  network.md        verified addresses: tokens, oracles, Chainlink CRE support, live runs
+  benchmark.md      shard benchmark: gas and parallelism for K = 1, 4, 16
+contracts/          Foundry: Metronome.sol, libraries, tests, gas and shard benchmarks
+bots/               keeper, market maker, taker, local end-to-end test, local stack, testnet fork
+indexer/            Envio HyperIndex indexer (runs in Docker)
+web/                Next.js mobile PWA: trade, perps, portfolio, stats, sandwich lab
 cre/                Chainlink CRE workflow                     (coming)
-web/                Next.js mobile PWA                         (coming)
 ideas/              original pitch
 tracks/             hackathon track and bounty notes
 ```
