@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { createWalletClient, http, parseEther, parseUnits } from "viem";
+import { createWalletClient, erc20Abi, http, parseEther, parseUnits, type Address } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { mockErc20Abi } from "@/lib/abi";
-import { BASE, QUOTE, chain, deployment, isLocal, publicClient, rpcUrl } from "@/lib/config";
+import { BASE, QUOTE, chain, deployment, devChain, isFork, publicClient, rpcUrl } from "@/lib/config";
 import { useBalances } from "@/lib/hooks";
 import { walletPath } from "@/lib/keys";
 import { fmtBase, fmtQuote, shortAddr } from "@/lib/price";
@@ -23,6 +23,31 @@ async function fundLocal(to: `0x${string}`) {
   ] as const) {
     const hash = await funder.writeContract({ address: token, abi: mockErc20Abi, functionName: "mint", args: [to, amount] });
     await publicClient.waitForTransactionReceipt({ hash });
+  }
+}
+
+/**
+ * Dev fork only: gas via anvil_setBalance, and AUSD moved from an address that holds it on the fork (AUSD has no public
+ * mint and its balance slot isn't discoverable, so it can't be dealt). The Perpl exchange holds millions.
+ */
+const FORK_QUOTE_HOLDER: Address = "0x1964c32f0be608e7d29302aff5e61268e72080cc";
+
+async function fundFork(to: Address) {
+  const rpc = (method: string, params: unknown[]) => publicClient.request({ method: method as never, params: params as never });
+  await rpc("anvil_setBalance", [to, `0x${parseEther("100").toString(16)}`]);
+  await rpc("anvil_setBalance", [FORK_QUOTE_HOLDER, `0x${parseEther("10").toString(16)}`]);
+  await rpc("anvil_impersonateAccount", [FORK_QUOTE_HOLDER]);
+  try {
+    const holder = createWalletClient({ account: FORK_QUOTE_HOLDER, chain, transport: http(rpcUrl) });
+    const hash = await holder.writeContract({
+      address: deployment.quote,
+      abi: erc20Abi,
+      functionName: "transfer",
+      args: [to, parseUnits("1000", QUOTE.decimals)],
+    });
+    await publicClient.waitForTransactionReceipt({ hash });
+  } finally {
+    await rpc("anvil_stopImpersonatingAccount", [FORK_QUOTE_HOLDER]);
   }
 }
 
@@ -88,7 +113,7 @@ export function AccountSheet({ onClose }: { onClose: () => void }) {
                 </button>
               </>
             )}
-            {isLocal && (
+            {devChain && (
               <button disabled={w.busy} onClick={w.useBurner} className="w-full py-2 text-xs text-muted underline">
                 Use a local test account instead (dev only)
               </button>
@@ -123,7 +148,7 @@ export function AccountSheet({ onClose }: { onClose: () => void }) {
               </button>
             </div>
 
-            {isLocal ? (
+            {devChain ? (
               <div>
                 <button
                   disabled={funding}
@@ -131,7 +156,7 @@ export function AccountSheet({ onClose }: { onClose: () => void }) {
                     setFunding(true);
                     setFundError(undefined);
                     try {
-                      await fundLocal(trader.address);
+                      await (isFork ? fundFork : fundLocal)(trader.address);
                     } catch (e) {
                       setFundError((e as Error).message.split("\n")[0]);
                     } finally {
@@ -140,7 +165,11 @@ export function AccountSheet({ onClose }: { onClose: () => void }) {
                   }}
                   className="w-full rounded-2xl bg-accent py-3 font-medium text-accent-fg disabled:opacity-50"
                 >
-                  {funding ? "Funding…" : `Get test funds (100 MON, 500k ${BASE.symbol}, 20k ${QUOTE.symbol})`}
+                  {funding
+                    ? "Funding…"
+                    : isFork
+                      ? `Get test funds on this fork (100 MON, 1,000 ${QUOTE.symbol})`
+                      : `Get test funds (100 MON, 500k ${BASE.symbol}, 20k ${QUOTE.symbol})`}
                 </button>
                 {fundError && <p className="mt-2 break-words text-xs text-sell">{fundError}</p>}
               </div>

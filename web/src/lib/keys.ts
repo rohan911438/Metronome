@@ -6,6 +6,8 @@
  *   Monad wallet      BIP-39 mnemonic from the PRF bytes → BIP-44 m/44'/60'/0'/0/0 (secp256k1), same as Mera's recipe
  *   sub-account i     m/44'/60'/0'/0/i
  *   Perpl API key     Ed25519 seed = HKDF-SHA256(PRF bytes, salt "metronome", info "perpl-api-key/v1")
+ *   device vault      AES-256-GCM key = HKDF-SHA256(PRF bytes, salt "metronome", info "device-vault/v1"): encrypts secrets the
+ *                     user brings (a Perpl API key made on perpl.xyz) before they touch localStorage
  *
  * The HKDF label keeps the Perpl key cryptographically independent of the wallet key: leaking one reveals nothing
  * about the other.
@@ -26,12 +28,15 @@ export interface DerivedKeys {
   walletKey(index?: number): Uint8Array;
   /** Ed25519 key pair for signing Perpl API requests. */
   perpl: { secretKey: Uint8Array; publicKey: Hex };
+  /** Raw AES-256 key for encrypting secrets stored on this device. */
+  vaultKey: Uint8Array;
 }
 
 export function deriveKeys(prfOutput: Uint8Array): DerivedKeys {
   const seed = mnemonicToSeedSync(entropyToMnemonic(prfOutput, wordlist));
   const root = HDKey.fromMasterSeed(seed);
-  const perplSecret = hkdf(sha256, prfOutput, new TextEncoder().encode("metronome"), new TextEncoder().encode("perpl-api-key/v1"), 32);
+  const label = (info: string) => hkdf(sha256, prfOutput, new TextEncoder().encode("metronome"), new TextEncoder().encode(info), 32);
+  const perplSecret = label("perpl-api-key/v1");
   return {
     walletKey(index = 0) {
       const k = root.derive(walletPath(index)).privateKey;
@@ -39,5 +44,6 @@ export function deriveKeys(prfOutput: Uint8Array): DerivedKeys {
       return k;
     },
     perpl: { secretKey: perplSecret, publicKey: `0x${bytesToHex(ed25519.getPublicKey(perplSecret))}` },
+    vaultKey: label("device-vault/v1"),
   };
 }

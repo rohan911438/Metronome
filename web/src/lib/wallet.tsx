@@ -5,7 +5,7 @@
  *   - passkey: Mera. The passkey's PRF output derives the wallet key (and the Perpl API key, see keys.ts). The key
  *              lives only in an in-memory signing session; after a reload the user unlocks again with Face ID.
  *              Transactions are signed in-app, so trading never shows a wallet popup.
- *   - burner:  local chain only, a throwaway key kept in localStorage, for development and tests without a passkey.
+ *   - burner:  local chain or dev fork only, a throwaway key kept in localStorage, for development and tests without a passkey.
  *
  * `send` sets a tight gas limit (estimate + 20%): Monad charges for the gas limit, not gas used.
  */
@@ -24,7 +24,7 @@ import {
   type TransactionReceipt,
 } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
-import { chain, isLocal, publicClient, rpcUrl } from "./config";
+import { chain, devChain, publicClient, rpcUrl } from "./config";
 import { deriveKeys, type DerivedKeys } from "./keys";
 
 export interface WriteCall<abi extends Abi, name extends ContractFunctionName<abi, "nonpayable" | "payable">> {
@@ -126,7 +126,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setSupported(typeof window !== "undefined" && "PublicKeyCredential" in window);
     setKnown(readJson<StoredCredential>(CRED_KEY));
-    if (isLocal) {
+    if (devChain) {
       const k = readJson<Hex>(BURNER_KEY);
       if (k) setTrader(makeTrader(privateKeyToAccount(k), "burner"));
     }

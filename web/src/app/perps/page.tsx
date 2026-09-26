@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { CandleChart } from "@/components/CandleChart";
 import { PerpBook } from "@/components/PerpBook";
+import { PerplAccountCard } from "@/components/PerplAccountCard";
 import { amount, fmtInterval, fmtNum, fmtPerpPrice, perpl, scaled, sortMarkets, usePoll } from "@/lib/perpl";
 
 const RESOLUTIONS = [
@@ -24,7 +25,6 @@ export default function PerpsPage() {
   const { data: candles } = usePoll(() => perpl.candles(id!, res.sec, res.count), 10_000, id === null ? null : `${id}:${res.sec}`);
 
   const collateral = ctx?.tokens[0];
-  const instance = ctx?.instances[0];
   const state = (market && tickers?.[market.id]) ?? market?.state;
   const pd = market?.config.price_decimals ?? 0;
   const sd = market?.config.size_decimals ?? 0;
@@ -133,20 +133,7 @@ export default function PerpsPage() {
         )}
       </section>
 
-      <section className="rounded-3xl border border-dashed border-line p-4 text-xs text-muted">
-        <h2 className="mb-1 text-sm font-semibold text-fg">Trading perps from this app</h2>
-        Coming next: open a Perpl account from your passkey wallet and trade here.
-        {instance && collateral && (
-          <>
-            {" "}
-            Opening an account takes at least{" "}
-            <span className="tabular font-mono text-fg">
-              {fmtNum(amount(instance.min_account_open_amount, collateral.decimals))} {collateral.symbol}
-            </span>{" "}
-            of collateral.
-          </>
-        )}
-      </section>
+      <PerplAccountCard ctx={ctx} />
     </div>
   );
 }

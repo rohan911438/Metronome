@@ -2,8 +2,9 @@
  * Pass-through for Perpl's public REST API. Perpl sends no CORS headers and its market-data WebSocket refuses browser
  * origins it hasn't whitelisted (HTTP 403), so the app reads public market data through this route instead.
  *
- * Only public, read-only paths are forwarded. Responses are cached for a moment, so any number of open apps cost Perpl
- * one upstream request per path per TTL.
+ * Only public, read-only paths are forwarded, plus three read-only account paths signed by the user's API key.
+ * Public responses are cached for a moment, so any number of open apps cost Perpl one upstream request per path per
+ * TTL.
  */
 import type { NextRequest } from "next/server";
 
@@ -55,8 +56,23 @@ const json = (body: string, status = 200, stale = false) =>
     headers: { "content-type": "application/json", "cache-control": "no-store", ...(stale ? { "x-perpl-stale": "1" } : {}) },
   });
 
+/**
+ * Read-only account paths, signed in the browser with the user's API key (see lib/perpl-key.ts). The signature headers
+ * are passed through untouched and never cached; the key itself never reaches this server.
+ */
+const SIGNED = /^v1\/trading\/(wallet|positions|orders)$/;
+const SIGNED_HEADERS = ["x-api-key", "x-api-timestamp", "x-api-nonce", "x-api-signature"];
+
 export async function GET(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   const path = (await params).path.join("/");
+  if (SIGNED.test(path)) {
+    const headers = Object.fromEntries(SIGNED_HEADERS.map((h) => [h, req.headers.get(h) ?? ""]));
+    if (Object.values(headers).some((v) => !v)) return Response.json({ error: "missing API key signature" }, { status: 401 });
+    const r = await fetch(`${UPSTREAM}/${path}`, { headers, cache: "no-store", signal: AbortSignal.timeout(8_000) })
+      .then(async (u) => ({ status: u.status, body: await u.text() }))
+      .catch((e: Error) => ({ status: 502, body: JSON.stringify({ error: `Perpl unreachable: ${e.message}` }) }));
+    return json(r.body, r.status);
+  }
   const ttl = ROUTES.find(([re]) => re.test(path))?.[1];
   if (ttl === undefined) return Response.json({ error: "not a public Perpl path" }, { status: 404 });
 

@@ -51,7 +51,7 @@ Settle's and cancel's fixed cost is mostly scanning 16 shards cold (bitmap summa
 
 The Agora testnet faucet (`0xd236…ee6C`, `requestFunds(address)`, 10,000 AUSD per drip) was **empty on Sep 25**: it held 1 raw unit and reverted with `InsufficientFunds`.
 
-**Rechecked Sep 26:** still 1 raw unit; a simulated `requestFunds(deployer)` still reverts `InsufficientFunds` (`0x356680b7`). AUSD has no public mint (`mint` reverts `0xdfcadb5b`); total supply 302.01M. Perpl's live `/api/v1/pub/context` lists this same AUSD (`0xa901…22dC`) as testnet collateral, although Perpl's docs call it "USD".
+**Rechecked Sep 26:** still 1 raw unit; a simulated `requestFunds(deployer)` still reverts `InsufficientFunds` (`0x356680b7`). AUSD has no public mint (`mint` reverts `0xdfcadb5b`); total supply 302.01M. Perpl's live `/api/v1/pub/context` lists this same AUSD (`0xa901…22dC`) as testnet collateral, although Perpl's docs call it "USD". No DEX on the current testnet lists AUSD (Uniswap's SDK testnet addresses have no code; Kuru testnet is USDC-only), so it can't be swapped for either.
 
 ## Oracles
 

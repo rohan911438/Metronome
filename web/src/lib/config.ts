@@ -12,6 +12,13 @@ const CHAINS: Record<Network, Chain> = { local: localChain, testnet: monadTestne
 export const chain = CHAINS[NETWORK];
 export const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL || chain.rpcUrls.default.http[0]!;
 export const isLocal = NETWORK === "local";
+/**
+ * Dev fork: the testnet app pointed at a local Anvil fork of Monad testnet (`pnpm perpl:fork`), so flows against real
+ * testnet contracts such as Perpl can run with test funds. Never true in a deployed build, whose RPC is not localhost.
+ */
+export const isFork = !isLocal && /^https?:\/\/(127\.0\.0\.1|localhost)(:|\/|$)/.test(rpcUrl);
+/** Throwaway test accounts and test funding are offered only on local chains. */
+export const devChain = isLocal || isFork;
 /** Poll at block speed: Monad blocks are ~0.4 s, Anvil's are 1 s here. */
 export const POLL_MS = isLocal ? 500 : 400;
 /** Max block span per eth_getLogs call; public RPCs cap this. */

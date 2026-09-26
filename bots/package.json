@@ -9,7 +9,8 @@
     "e2e:local": "tsx src/e2e-local.ts",
     "dev:local": "tsx src/dev-local.ts",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "perpl:fork": "tsx src/perpl-fork.ts"
   },
   "dependencies": {
     "dotenv": "17.2.3",
