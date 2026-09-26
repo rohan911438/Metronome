@@ -64,7 +64,7 @@ Solo build. Design: [`architecture.md`](architecture.md). Submission target **Oc
 - [ ] Test on a real phone (iOS 18+ / Android) with a real passkey → part of M3
 
 ### Phase 4b — Perpl perps tab (Oct 4–7)
-- [ ] Oct 4: `lib/perpl.ts`: REST + market-data WebSocket (no key): markets, mark price, order book for MON/BTC/ETH; `/perps` page with market picker and price
+- [x] Oct 4 (done Sep 26): `lib/perpl.ts` + `/perps` page: market picker (all open markets, MON first), mark/oracle price, 24h change, volume, open interest, funding, fees, candles (5m/1h/1d), live L2 book. Data comes through `app/api/perpl` (a cached pass-through for public REST paths only), because Perpl sends no CORS headers and its market-data WebSocket answers browser origins with 403. Validated in headless Edge at phone size against testnet: 11/11 checks
 - [ ] Oct 5: onboarding signed by the Mera wallet: approve collateral → `createAccount` → `allowOrderForwarding(true)`; API-key enrollment (`/api-key/payload` → EIP-712 wallet signature + Ed25519 proof → `/api-key/enroll`). **Needs Perpl's origin whitelist**; fallback: paste a key made on perpl.xyz
 - [ ] Oct 6: trading WebSocket: signed requests, place market/limit orders, cancel; positions, open orders, P&L, collateral in AUSD; perps section in `/portfolio`
 - [ ] Oct 7: mobile polish; film on a real phone: passkey → AUSD balance → Metronome trade → Perpl trade → M3

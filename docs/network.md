@@ -51,6 +51,8 @@ Settle's and cancel's fixed cost is mostly scanning 16 shards cold (bitmap summa
 
 The Agora testnet faucet (`0xd236…ee6C`, `requestFunds(address)`, 10,000 AUSD per drip) was **empty on Sep 25**: it held 1 raw unit and reverted with `InsufficientFunds`.
 
+**Rechecked Sep 26:** still 1 raw unit; a simulated `requestFunds(deployer)` still reverts `InsufficientFunds` (`0x356680b7`). AUSD has no public mint (`mint` reverts `0xdfcadb5b`); total supply 302.01M. Perpl's live `/api/v1/pub/context` lists this same AUSD (`0xa901…22dC`) as testnet collateral, although Perpl's docs call it "USD".
+
 ## Oracles
 
 - **Chainlink Data Feeds (push):** no MON/USD feed listed for Monad in Monad's docs (checked Sep 25). Chainlink Data Streams (pull) is live.
