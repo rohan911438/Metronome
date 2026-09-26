@@ -7,6 +7,7 @@
     "keeper": "tsx src/keeper.ts",
     "mm": "tsx src/mm.ts",
     "e2e:local": "tsx src/e2e-local.ts",
+    "dev:local": "tsx src/dev-local.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },

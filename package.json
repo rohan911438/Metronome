@@ -5,6 +5,9 @@
   "scripts": {
     "keeper": "pnpm --filter @metronome/bots keeper",
     "mm": "pnpm --filter @metronome/bots mm",
-    "e2e:local": "pnpm --filter @metronome/bots e2e:local"
+    "e2e:local": "pnpm --filter @metronome/bots e2e:local",
+    "dev:local": "pnpm --filter @metronome/bots dev:local",
+    "web:dev": "pnpm --filter @metronome/web dev",
+    "web:build": "pnpm --filter @metronome/web build"
   }
 }

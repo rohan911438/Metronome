@@ -8,11 +8,9 @@
  *
  *   pnpm e2e:local
  */
-import { spawn, execFileSync } from "node:child_process";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 import { erc20Abi, maxUint256, parseAbiItem, type Hex } from "viem";
 import { metronomeAbi, sandwichLabAbi, miniAmmAbi } from "./abi.js";
+import { KEYS, sleep, startLocalStack } from "./anvil.js";
 import { log, send, tickForPrice } from "./chain.js";
 import { createCtx, walletFor, type Ctx } from "./config.js";
 import { Keeper } from "./keeper.js";
@@ -21,21 +19,10 @@ import { MarketMaker, defaultMmOptions } from "./mm.js";
 const PORT = 8546;
 const RPC = `http://127.0.0.1:${PORT}`;
 const TRADE_BLOCKS = Number(process.env.TRADE_BLOCKS ?? 20);
-// Anvil's default accounts 0-5 (mnemonic "test test ... junk"); test-only keys.
-const KEYS: Hex[] = [
-  "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
-  "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d",
-  "0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a",
-  "0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6",
-  "0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a",
-  "0x8b3a350cf5c34c9194ca85829a2df0ec3153be0318b5e2d3348e872092edffba",
-];
-const contractsDir = resolve(dirname(fileURLToPath(import.meta.url)), "../../contracts");
 const claimedEvent = parseAbiItem(
   "event Claimed(bytes32 indexed orderId, address indexed owner, uint256 baseOut, uint256 quoteOut, bool closed)",
 );
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const fail = (msg: string): never => {
   throw new Error(`E2E FAILED: ${msg}`);
 };
@@ -47,14 +34,8 @@ async function waitForBlocks(ctx: Ctx, n: number) {
 
 async function main() {
   // 1. Chain + contracts
-  const anvil = spawn("anvil", ["--port", String(PORT), "--block-time", "1", "--silent"], { stdio: "ignore" });
+  const anvil = await startLocalStack(PORT);
   try {
-    await sleep(1500);
-    execFileSync(
-      "forge",
-      ["script", "script/DeployLocal.s.sol", "--rpc-url", RPC, "--broadcast", "--private-key", KEYS[0]!],
-      { cwd: contractsDir, stdio: "ignore" },
-    );
     const ctx = createCtx({ network: "local", rpcUrl: RPC });
     const m = ctx.deployment.address;
     log("e2e", `deployed Metronome ${m} (${ctx.deployment.shards} shards)`);
