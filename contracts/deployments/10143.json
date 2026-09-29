@@ -1,4 +1,11 @@
 {
+  "heartbeat": {
+    "address": "0xAe2C3113aF7C897DAcc456Dc78234724179d27F4",
+    "deployBlock": 66620516,
+    "forwarder": "0xB9F79d863261869B234c481D1f9A7af84AeAd192",
+    "metronome": "0x32f11865b2272B24f0F8174598EA64A82fc63761",
+    "owner": "0x0D350bc1b4102732cFe243f80fe693f428572373"
+  },
   "metronome": {
     "address": "0x32f11865b2272B24f0F8174598EA64A82fc63761",
     "base": "0xFb8bf4c1CC7a94c73D209a149eA2AbEa852BC541",

@@ -25,3 +25,9 @@
 - [x] Does CRE support Monad? **Yes, mainnet and testnet** (see `docs/network.md`). Exact capabilities still to confirm with the CLI
 - [x] Is a MON/USD price feed available on Monad? **No Chainlink push feed listed; Pyth MON/USD exists** (see `docs/network.md`)
 - [ ] How fast can a CRE workflow trigger, and can it keep up with 300ms blocks? If not, settle every N blocks
+
+## Status (Sep 29)
+- Built: `cre/metronome-heartbeat` (Go) + `contracts/src/cre/MetronomeHeartbeat.sol` receiver, live on testnet at `0xAe2C…27F4`.
+- Proven: `cre workflow simulate --broadcast` settled real pending batch 66,620,995 on Monad testnet (tx `0x02e34a3a…4995`).
+- Blocked: `cre workflow deploy` needs Chainlink to enable deploy access (account shows "Deploy Access: Not enabled"; requested). After deploy, call `setForwarder(0xF8344CFd5c43616a4366C34E3EEE75af79a74482)`.
+- Not done: the price-sanity-check job (no Chainlink MON/USD feed on Monad; the contract's own oracle guard covers it if enabled).

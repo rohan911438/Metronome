@@ -25,6 +25,7 @@ The old testnet WMON address `0x760AfE86e5de5fa0Ee542fc7B7B713e1c5425701` has **
 | | Testnet |
 |---|---|
 | **Metronome v2 (WMON/USDC), current** | [`0x32f11865b2272B24f0F8174598EA64A82fc63761`](https://testnet.monadscan.com/address/0x32f11865b2272B24f0F8174598EA64A82fc63761) (block 65,885,642): same contract as v2, quoted in Circle USDC because testnet AUSD can't be obtained |
+| MetronomeHeartbeat (CRE receiver) | [`0xAe2C3113aF7C897DAcc456Dc78234724179d27F4`](https://testnet.monadscan.com/address/0xAe2C3113aF7C897DAcc456Dc78234724179d27F4) (block 66,620,516): settles the current market on CRE reports; accepts the mock forwarder until the workflow is deployed |
 | Metronome v2 (WMON/AUSD), retired | [`0x99E4DBCF8edE8092Be972307eB3d0Cd91ecBa889`](https://testnet.monadscan.com/address/0x99E4DBCF8edE8092Be972307eB3d0Cd91ecBa889) (block 65,622,114) |
 | Metronome v1 (retired) | [`0xd9eD8A732D8daE96855b40e1ebD65E9d36583ea1`](https://testnet.monadscan.com/address/0xd9eD8A732D8daE96855b40e1ebD65E9d36583ea1) (block 65,615,597): taker orders only |
 | Config | 16 shards, tick 2048 = 0.025 USDC (AUSD on mainnet), min order 1 MON, fee 5 bps |
@@ -70,7 +71,8 @@ The Agora testnet faucet (`0xd236…ee6C`, `requestFunds(address)`, 10,000 AUSD 
 - Monad **mainnet and testnet are both supported** (Chainlink docs, checked Sep 25).
   - Mainnet: CLI ≥ v1.29.0, TS SDK ≥ v1.18.0
   - Testnet: CLI ≥ v1.30.0, TS SDK ≥ v1.19.0
-- Which capabilities work on Monad (cron, log trigger, EVM write) is confirmed with `cre workflow supported-chains` after login.
+- **Verified Sep 29 (CLI v1.35.0):** `cre workflow supported-chains` lists `monad-testnet` (selector 2183018362218727504, forwarder `0xF8344CFd5c43616a4366C34E3EEE75af79a74482`, mock forwarder `0xB9F79d863261869B234c481D1f9A7af84AeAd192`) and `monad-mainnet` (selector 8481857512324358265, forwarder `0x76c9cf548b4179F8901cda1f8623568b58215E62`). Cron trigger, chain read and chain write all work on testnet: `simulate --broadcast` settled batch 66,620,995 in tx `0x02e34a3a…4995`.
+- Deploy needs Chainlink to enable deploy access per account (requested Sep 29).
 
 ## Sources
 - https://docs.agora.finance/developer/contract-deployments

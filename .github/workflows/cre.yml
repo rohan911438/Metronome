@@ -1,0 +1,26 @@
+name: cre
+
+on:
+  push:
+    branches: [main]
+    paths: ["cre/**", ".github/workflows/cre.yml"]
+  pull_request:
+    paths: ["cre/**", ".github/workflows/cre.yml"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cre
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: cre/go.mod
+          cache-dependency-path: cre/go.sum
+      - run: go vet ./...
+      - run: test -z "$(gofmt -l .)"
+      - run: go test ./...
+      - name: Build the workflow for WASM
+        run: GOOS=wasip1 GOARCH=wasm go build -o /dev/null ./metronome-heartbeat

@@ -121,7 +121,7 @@ One main track, plus sponsor bounties that the same product qualifies for. Detai
 | **Envio — Best Use of Envio** | Indexer behind the Stats page | Integrated (local chain); testnet needs an API token |
 | **Perpl — Best use of Perpl's API** | Perps tab: market data and account setup in-app | Partly integrated; trading waits on testnet AUSD |
 | **Agora — Best Mobile Trading App** | Mobile app: passkey login, AUSD balance, Metronome and Perpl trades | Paused until Agora replies about testnet AUSD |
-| **Chainlink — Best CRE workflow** | CRE workflow that settles batches | Planned |
+| **Chainlink — Best CRE workflow** | CRE workflow that settles batches | Simulated live on testnet; deploy pending access |
 | **Nansen — Best use of Nansen** | MEV radar of real Monad sandwiches, attackers labeled by Nansen | Planned |
 
 ## Integrations
@@ -134,7 +134,7 @@ One main track, plus sponsor bounties that the same product qualifies for. Detai
 | **Perpl** | Perps tab: live markets, candles and order book; open a Perpl account (approve, deposit, one-click trading) from the passkey wallet; paste an API key, stored encrypted with the passkey | ✅ Data + account setup · ⏳ trading |
 | **Circle USDC** | Quote asset of the testnet market (testnet AUSD can't be obtained) | ✅ Testnet |
 | **AUSD** ([Agora](https://www.agora.finance)) | Quote asset of the mainnet market and Perpl collateral | ⏳ Mainnet |
-| **Chainlink** | CRE workflow as the exchange's heartbeat (settles and pays out every batch); price feed as a circuit breaker | ⏳ Planned |
+| **Chainlink** | CRE workflow as the exchange's heartbeat: [`cre/metronome-heartbeat`](cre/metronome-heartbeat) settles every pending batch through a [receiver contract](contracts/src/cre/MetronomeHeartbeat.sol) | ✅ Settled a live testnet batch via `simulate --broadcast`; deploy waits on Chainlink access |
 | **Nansen** | MEV radar: finds real sandwich attacks on Monad AMMs and labels the attackers | ⏳ Planned |
 
 ## Where it goes next
@@ -181,7 +181,7 @@ contracts/          Foundry: Metronome.sol, libraries, tests, gas and shard benc
 bots/               keeper, market maker, taker, local end-to-end test, local stack, testnet fork
 indexer/            Envio HyperIndex indexer (runs in Docker)
 web/                Next.js mobile PWA: trade, perps, portfolio, stats, sandwich lab
-cre/                Chainlink CRE workflow                     (coming)
+cre/                Chainlink CRE workflow (Go): metronome-heartbeat
 ideas/              original pitch
 tracks/             hackathon track and bounty notes
 ```

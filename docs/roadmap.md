@@ -73,7 +73,8 @@ Solo build. Design: [`architecture.md`](architecture.md). Submission target **Oc
 - [ ] Oct 7: mobile polish; film on a real phone: passkey → AUSD balance → Metronome trade → Perpl trade → M3
 
 ### Phase 5 — Sponsor integrations + benchmark (Oct 8–10)
-- [ ] **Oct 8 — Chainlink CRE:** `metronome-heartbeat` workflow (cron trigger → find pending batches → `settleAndClaim`); simulate locally, then deploy to testnet
+- [x] **Oct 8 — Chainlink CRE (done Sep 29):** `cre/metronome-heartbeat` (Go): cron → `nextPendingBatch()` → signed report → forwarder → `MetronomeHeartbeat.onReport` → `settle`. Receiver live on testnet, 7 Foundry + 4 Go tests, `simulate --broadcast` settled a real pending batch on testnet
+- [ ] CRE deploy: waiting on Chainlink to enable deploy access for the account; then `cre workflow deploy` and `setForwarder` to the real forwarder
 - [x] **Envio indexer** (done Sep 26): `indexer/`, HyperIndex 3.13 in Docker (Envio has no Windows build) with Postgres + Hasura; entities `Stats`, `DailyStats`, `Batch`, `Order`, `Trader`, `Keeper`, `Pool`, `GasTx`. Runs against the local Anvil stack; totals match raw chain logs exactly. CI job `indexer.yml` (codegen + typecheck for both configs)
 - [ ] Indexer on testnet: needs an Envio API token (free, envio.dev) or Envio Cloud, and trading activity on the testnet market (M2)
 - [x] **`/stats` page** (done Sep 26): volume, batches, orders, traders, order-to-settlement delay, gas per action, keeper leaderboard, clearing-price chart, daily volume; live from the indexer, explains itself when no indexer is configured. Validated in headless Edge: 11/11
