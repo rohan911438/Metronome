@@ -55,9 +55,27 @@ flowchart LR
 - **Orders go into price-level buckets, not a queue.** Placing an order just adds its size to the bucket for its price, so there is nothing to jump ahead of.
 - **Settling costs the same with 10 orders or 10,000.** Clearing walks price levels, not orders, using a bitmap to skip empty ones.
 - **Makers post once.** Resting orders join a pool per price level and stay in every batch until filled or cancelled, so liquidity is there every block without re-posting. Makers pay no fee; takers pay 5 bps.
-- **Claims are O(1) per user.** Taker orders read their batch's result; resting orders read their pool's running totals. A keeper (or a Chainlink CRE workflow) claims for users, so trading feels like one tap.
+- **Claims are O(1) per user.** Taker orders read their batch's result; resting orders read their pool's running totals. A keeper claims for users, so trading feels like one tap.
 - **Only the marginal price level is partly filled**, pro-rata. Every order at a better price fills completely. Every order at a worse price is fully refunded.
 - **Nobody has to be trusted.** Anyone can call `settle`, and `claim` settles the batch itself if no one has yet.
+
+### Chainlink CRE: the exchange's heartbeat
+
+Batches don't depend on our server staying up. A [Chainlink CRE workflow](cre/metronome-heartbeat) settles them from Chainlink's network:
+
+```mermaid
+flowchart LR
+    T["Cron, every 30s"] --> R["Read nextPendingBatch()"]
+    R -->|none| I["Idle: no transaction, no gas"]
+    R -->|batch waiting| S["Signed report:<br/>settle through the latest block"]
+    S --> F["Chainlink forwarder<br/>checks the signatures"]
+    F --> H["MetronomeHeartbeat.onReport<br/>→ settle(latest block)"]
+```
+
+- **One report catches up on everything.** It settles every waiting batch up to the latest block, however far behind it is.
+- **It adds no new power.** `settle` is open to anyone; [`MetronomeHeartbeat`](contracts/src/cre/MetronomeHeartbeat.sol) only accepts reports from Chainlink's forwarder, and any settle reward lands there for the owner to sweep.
+- **Proven live on testnet:** the workflow found waiting batch 66,620,995 and settled it in [`0x02e3…4995`](https://testnet.monadscan.com/tx/0x02e34a3a1c734793a2251446dac627fa3996002c2c2d62dcbf009dfd45d64995) (forwarder → `onReport` → `BatchSettled` → `Heartbeat`).
+- **Gas:** Monad charges for the gas *limit*, so the report's limit (1.5M) is sized to a busy batch (~882k gas to settle 200 orders at 16 shards).
 
 Full detail, including the clearing algorithm, storage layout and invariants: [`docs/architecture.md`](docs/architecture.md).
 
@@ -121,7 +139,7 @@ One main track, plus sponsor bounties that the same product qualifies for. Detai
 | **Envio — Best Use of Envio** | Indexer behind the Stats page | Integrated (local chain); testnet needs an API token |
 | **Perpl — Best use of Perpl's API** | Perps tab: market data and account setup in-app | Partly integrated; trading waits on testnet AUSD |
 | **Agora — Best Mobile Trading App** | Mobile app: passkey login, AUSD balance, Metronome and Perpl trades | Paused until Agora replies about testnet AUSD |
-| **Chainlink — Best CRE workflow** | CRE workflow that settles batches | Simulated live on testnet; deploy pending access |
+| **Chainlink — Best CRE workflow** | CRE workflow that settles batches | Built; settled a live testnet batch; deploy waits on Chainlink access |
 | **Nansen — Best use of Nansen** | MEV radar of real Monad sandwiches, attackers labeled by Nansen | Planned |
 
 ## Integrations
@@ -153,7 +171,7 @@ Metronome is meant to be **infrastructure**, not a single app:
 |---|---|---|
 | Architecture and roadmap | Sep 25 | ✅ |
 | Core contract with differential fuzz + invariant tests | Oct 1 | ✅ |
-| Resting (maker) orders: post once, fill across batches (90 tests passing) | — | ✅ |
+| Resting (maker) orders: post once, fill across batches | — | ✅ |
 | Deployed on Monad testnet: WMON/USDC market [`0x32f1…3761`](https://testnet.monadscan.com/address/0x32f11865b2272B24f0F8174598EA64A82fc63761) (earlier WMON/AUSD market retired: no testnet AUSD) | Oct 1 | ✅ |
 | Keeper + market-maker bots; end-to-end test on a local chain (sandwich: AMM victim −527 bps, Metronome 0) | Oct 3 | ✅ |
 | Bots live on testnet: keeper + market maker, 3 taker fills between two wallets, each settled within 1–2 blocks | Oct 3 | ✅ |
@@ -164,10 +182,21 @@ Metronome is meant to be **infrastructure**, not a single app:
 | End-to-end trade on a phone | Oct 7 | ⏳ |
 | Envio indexer + Stats page | Oct 9 | ✅ |
 | Shard benchmark K=1/4/16 ([results](docs/benchmark.md)) | Oct 10 | ✅ |
-| Chainlink CRE workflow, Nansen MEV radar | Oct 10 | ⏳ |
+| Chainlink CRE workflow: built, 11 tests, settled a live testnet batch ([details](#chainlink-cre-the-exchanges-heartbeat)) | Oct 8 | ✅ |
+| CRE workflow deployed on Chainlink's network | Oct 10 | ⏳ waiting on Chainlink deploy access |
+| Nansen MEV radar | Oct 10 | ⏳ |
 | Monad mainnet | Oct 11 | ⏳ |
 
-Contract addresses, test results, gas numbers and the demo video will be added here as they land. Full plan: [`docs/roadmap.md`](docs/roadmap.md).
+**Tests:** 98 Foundry tests (unit, differential fuzz, invariants, gas and shard benchmarks) and 4 Go workflow tests, all run in CI.
+
+**Monad testnet contracts**
+
+| Contract | Address |
+|---|---|
+| Metronome (WMON/USDC market) | [`0x32f11865b2272B24f0F8174598EA64A82fc63761`](https://testnet.monadscan.com/address/0x32f11865b2272B24f0F8174598EA64A82fc63761) |
+| MetronomeHeartbeat (CRE receiver) | [`0xAe2C3113aF7C897DAcc456Dc78234724179d27F4`](https://testnet.monadscan.com/address/0xAe2C3113aF7C897DAcc456Dc78234724179d27F4) |
+
+Every verified address (tokens, oracles, CRE forwarders) is in [`docs/network.md`](docs/network.md). The demo video will be added here. Full plan: [`docs/roadmap.md`](docs/roadmap.md).
 
 ## Repository
 
@@ -177,11 +206,11 @@ docs/
   roadmap.md        milestones, day-by-day plan, cut order, risks
   network.md        verified addresses: tokens, oracles, Chainlink CRE support, live runs
   benchmark.md      shard benchmark: gas and parallelism for K = 1, 4, 16
-contracts/          Foundry: Metronome.sol, libraries, tests, gas and shard benchmarks
+contracts/          Foundry: Metronome.sol, CRE receiver, libraries, tests, gas and shard benchmarks
 bots/               keeper, market maker, taker, local end-to-end test, local stack, testnet fork
 indexer/            Envio HyperIndex indexer (runs in Docker)
 web/                Next.js mobile PWA: trade, perps, portfolio, stats, sandwich lab
-cre/                Chainlink CRE workflow (Go): metronome-heartbeat
+cre/                Chainlink CRE workflow (Go): metronome-heartbeat settles pending batches
 ideas/              original pitch
 tracks/             hackathon track and bounty notes
 ```
