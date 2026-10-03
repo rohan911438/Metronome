@@ -15,8 +15,8 @@ Verified values the code and bots rely on. **"Verified"** means checked with an 
 |---|---|---|---|
 | **AUSD** (quote) | `0xa9012a055bd4e0eDfF8Ce09f960291C09D5322dC` (verified) | `0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a` | 6 (verified) |
 | **WMON** (base) | `0xFb8bf4c1CC7a94c73D209a149eA2AbEa852BC541` (verified) | TBC | 18 (verified) |
-| AUSD faucet | `0xd236c18D274E54FAccC3dd9DDA4b27965a73ee6C` (has code, empty) | — | — |
-| **TestAUSD** (tAUSD, ours; testnet quote since Oct 3; anyone can mint ≤10M per call) | [`0xA89Cdf8C92eC4f84654b44c0768FEC1b594cd091`](https://testnet.monadscan.com/address/0xA89Cdf8C92eC4f84654b44c0768FEC1b594cd091) | — | 6 |
+| AUSD faucet | `0xd236c18D274E54FAccC3dd9DDA4b27965a73ee6C` (proxy; refilled by Oct 3 with ~999M AUSD): `requestFunds(to)` gives 10,000 AUSD, one request per 60 s across all callers (`MaxFrequencyExceeded`), only while `to` holds < 100,000 | — | — |
+| **TestAUSD** (tAUSD, ours, open mint ≤10M per call; testnet quote for a few hours on Oct 3, unused since the AUSD faucet came back) | [`0xA89Cdf8C92eC4f84654b44c0768FEC1b594cd091`](https://testnet.monadscan.com/address/0xA89Cdf8C92eC4f84654b44c0768FEC1b594cd091) | — | 6 |
 | USDC (Circle; testnet quote Sep 26 – Oct 3) | `0x534b2f3A21130d7a60830c2Df862319e593943A3` (verified) | `0x754704Bc059F8C67012fEd69BC8A327a5aafb603` | 6 (verified) |
 
 The old testnet WMON address `0x760AfE86e5de5fa0Ee542fc7B7B713e1c5425701` has **no code**. Don't use it.
@@ -25,12 +25,12 @@ The old testnet WMON address `0x760AfE86e5de5fa0Ee542fc7B7B713e1c5425701` has **
 
 | | Testnet |
 |---|---|
-| **Metronome v2 (WMON/tAUSD), current** | [`0x753CC9fb3F26d208AF354a672255B7eDe78bcF24`](https://testnet.monadscan.com/address/0x753CC9fb3F26d208AF354a672255B7eDe78bcF24) (block 67,751,847): same contract as v2, quoted in our TestAUSD because Agora's testnet AUSD can't be obtained (the Monad team's suggestion) |
+| **Metronome v2 (WMON/AUSD), current again since Oct 3** | [`0x99E4DBCF8edE8092Be972307eB3d0Cd91ecBa889`](https://testnet.monadscan.com/address/0x99E4DBCF8edE8092Be972307eB3d0Cd91ecBa889) (block 65,622,114): Agora's AUSD faucet works again, so the original AUSD market is back; its code is identical to the later deployments |
+| Metronome v2 (WMON/tAUSD), retired Oct 3 | [`0x753CC9fb3F26d208AF354a672255B7eDe78bcF24`](https://testnet.monadscan.com/address/0x753CC9fb3F26d208AF354a672255B7eDe78bcF24) (block 67,751,847) |
 | Metronome v2 (WMON/USDC), retired Oct 3 | [`0x32f11865b2272B24f0F8174598EA64A82fc63761`](https://testnet.monadscan.com/address/0x32f11865b2272B24f0F8174598EA64A82fc63761) (block 65,885,642) |
-| MetronomeHeartbeat (CRE receiver) | [`0x877aa5aBfC1250E19B00F2BB5dbc253057aC48e7`](https://testnet.monadscan.com/address/0x877aa5aBfC1250E19B00F2BB5dbc253057aC48e7) (block 67,756,898): settles the current market on CRE reports; accepts the mock forwarder until the workflow is deployed. The Sep 29 receiver `0xAe2C…27F4` served the USDC market |
-| Metronome v2 (WMON/AUSD), retired | [`0x99E4DBCF8edE8092Be972307eB3d0Cd91ecBa889`](https://testnet.monadscan.com/address/0x99E4DBCF8edE8092Be972307eB3d0Cd91ecBa889) (block 65,622,114) |
+| MetronomeHeartbeat (CRE receiver, MON/USD feed) | [`0x99758F4e8Ce8E9A5364d1a6aBc2a7cF40ac9874f`](https://testnet.monadscan.com/address/0x99758F4e8Ce8E9A5364d1a6aBc2a7cF40ac9874f) (block 67,767,443): settles the current market on CRE reports and stores the DON's MON/USD; accepts the mock forwarder until the workflow is deployed. Earlier receivers: `0x877a…48e7` (tAUSD market, first with the price feed), `0xAe2C…27F4` (USDC market) |
 | Metronome v1 (retired) | [`0xd9eD8A732D8daE96855b40e1ebD65E9d36583ea1`](https://testnet.monadscan.com/address/0xd9eD8A732D8daE96855b40e1ebD65E9d36583ea1) (block 65,615,597): taker orders only |
-| Config | 16 shards, tick 2048 = 0.025 tAUSD (AUSD on mainnet), min order 1 MON, fee 5 bps |
+| Config | 16 shards, tick 2048 = 0.025 AUSD; real MON ≈ $0.0315 ≈ tick 2279, where the market maker quotes when the CRE price is fresh, min order 1 MON, fee 5 bps |
 | Owner / deployer | `0x0D350bc1b4102732cFe243f80fe693f428572373` |
 
 Machine-readable copy: `contracts/deployments/10143.json`.
@@ -57,6 +57,10 @@ Machine-readable copy: `contracts/deployments/10143.json`.
 Settle's and cancel's fixed cost is mostly scanning 16 shards cold (bitmap summaries, and in v2 the per-shard batch chains: ~32 cold reads). That's the price of the parallel-friendly layout. The Phase 5 benchmark compares K=1/4/16 to pick the right shard count.
 
 ## AUSD faucet status
+
+**Oct 3: working again.** The faucet held ~998.8M AUSD; `requestFunds(deployer)` gave 10,000 AUSD ([tx](https://testnet.monadscan.com/tx/0xab1a626fc593bb4c7aae5877b5e92ab52b1e4deae503fd1d1423498c1b479515)). Settings read on-chain: `faucetDripAmount` 10,000 AUSD, `maxDripFrequency` 60 s (global, error `MaxFrequencyExceeded()`), `maxAmountToOwn` 100,000 AUSD.
+
+History:
 
 The Agora testnet faucet (`0xd236…ee6C`, `requestFunds(address)`, 10,000 AUSD per drip) was **empty on Sep 25**: it held 1 raw unit and reverted with `InsufficientFunds`.
 

@@ -17,8 +17,9 @@ Every 30 seconds (cron trigger):
 
 The receiver serves the price as a Chainlink-style `IAggregatorV3` feed (8 decimals), so `Metronome.setOracle(receiver,
 maxDeviationBps, maxStaleness)` makes the market's price guard check each clearing price against it: a batch that clears
-too far from MON/USD is voided and refunded. On mainnet (WMON/AUSD) that's the intended setup. On testnet the market
-quotes in tAUSD around an arbitrary 0.025, so the guard stays off there and the price is only recorded.
+too far from MON/USD is voided and refunded. On mainnet (WMON/AUSD) that's the intended setup. On testnet the workflow runs
+as simulations, so the price isn't kept fresh and the guard stays off; the market maker bot still centers its quotes
+on the CRE price whenever it is under 15 minutes old.
 
 `settle` is permissionless, so the receiver adds no new power. It only accepts reports from the forwarder, ignores
 prices that are older than the stored one or dated in the future, and any settle reward the market pays lands there for
@@ -26,8 +27,8 @@ the owner to sweep.
 
 | | Monad testnet |
 |---|---|
-| Market | `0x753CC9fb3F26d208AF354a672255B7eDe78bcF24` |
-| `MetronomeHeartbeat` | `0x877aa5aBfC1250E19B00F2BB5dbc253057aC48e7` |
+| Market | `0x99E4DBCF8edE8092Be972307eB3d0Cd91ecBa889` |
+| `MetronomeHeartbeat` | `0x99758F4e8Ce8E9A5364d1a6aBc2a7cF40ac9874f` |
 | Forwarder it accepts | `0xB9F79d863261869B234c481D1f9A7af84AeAd192` (CRE mock forwarder, used by `simulate --broadcast`) |
 | Real forwarder (after deploy) | `0xF8344CFd5c43616a4366C34E3EEE75af79a74482` (switch with `setForwarder`) |
 
@@ -41,7 +42,7 @@ cre workflow simulate metronome-heartbeat --target staging-settings --non-intera
 cre workflow simulate metronome-heartbeat --target staging-settings --non-interactive --trigger-index 0 --broadcast
 ```
 
-Live runs on Oct 3, 2026 (`simulate --broadcast`, WMON/tAUSD market):
+Live runs on Oct 3, 2026 (`simulate --broadcast`, on the WMON/tAUSD market and receiver `0x877a…48e7`, since retired):
 
 - **Price only:** no batch waiting and no price stored yet, so the workflow fetched MON/USD = $0.0314765 and wrote it in
   [`0xc610c306…f57b`](https://testnet.monadscan.com/tx/0xc610c30620f1c50803008ded82506ce5eeec1a1d72cbc713cd7dd75e696cf57b)

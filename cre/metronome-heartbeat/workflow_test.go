@@ -23,8 +23,8 @@ import (
 var testConfig = &Config{
 	Schedule:         "*/30 * * * * *",
 	ChainName:        "monad-testnet",
-	MetronomeAddress: "0x753CC9fb3F26d208AF354a672255B7eDe78bcF24",
-	HeartbeatAddress: "0x877aa5aBfC1250E19B00F2BB5dbc253057aC48e7",
+	MetronomeAddress: "0x99E4DBCF8edE8092Be972307eB3d0Cd91ecBa889",
+	HeartbeatAddress: "0x99758F4e8Ce8E9A5364d1a6aBc2a7cF40ac9874f",
 	GasLimit:         1_500_000,
 	PriceURL:         "https://api.coinbase.com/v2/prices/MON-USD/spot",
 	PriceMaxAgeSec:   300,

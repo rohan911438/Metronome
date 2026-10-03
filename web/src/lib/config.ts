@@ -60,7 +60,7 @@ function load(): Deployment {
 export const deployment = load();
 
 /**
- * Token metadata. The quote asset is AUSD on mainnet, our open-mint TestAUSD on testnet (AUSD's testnet faucet is empty), and a
+ * Token metadata. The quote asset is AUSD on mainnet, Agora's testnet AUSD on testnet (from Agora's faucet), and a
  * 6-decimal mock locally; the deployment records which.
  */
 export const BASE = { symbol: "WMON", native: "MON", decimals: 18 } as const;

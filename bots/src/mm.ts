@@ -4,9 +4,11 @@
  * Resting orders stay in every batch until filled, so the bot only sends transactions when the reference price moves
  * by REQUOTE_TICKS or more (cancel the old ladder, post a new one). It also collects its own fills every few blocks.
  *
- * Reference price, first available of: the MiniAMM spot price (local demo), the last clearing price, START_TICK.
+ * Reference price, first available of: the MiniAMM spot price (local demo), the MON/USD price the Chainlink CRE workflow
+ * keeps on MetronomeHeartbeat (if under CRE_MAX_AGE seconds old; a dollar stablecoin quote is taken as 1 USD), the last
+ * clearing price, START_TICK.
  */
-import { erc20Abi, maxUint256, type Hex } from "viem";
+import { erc20Abi, maxUint256, parseAbi, type Hex } from "viem";
 import { metronomeAbi, miniAmmAbi } from "./abi.js";
 import { isMain, log, onBlocks, send, tickForPrice } from "./chain.js";
 import { createCtx, keyFromEnv, walletFor, type Ctx, type Wallet } from "./config.js";
@@ -18,6 +20,7 @@ export interface MmOptions {
   size: bigint; // base units per order
   requoteTicks: number; // re-quote when the reference moves this far
   startTick: number; // fallback reference
+  creMaxAge: number; // seconds: ignore an older CRE price
   claimEvery: bigint; // blocks between collecting own fills
 }
 
@@ -28,8 +31,14 @@ export const defaultMmOptions = (): MmOptions => ({
   size: BigInt(process.env.MM_SIZE ?? 50n * 10n ** 18n),
   requoteTicks: Number(process.env.MM_REQUOTE_TICKS ?? 3),
   startTick: Number(process.env.START_TICK ?? 2048),
+  creMaxAge: Number(process.env.CRE_MAX_AGE ?? 900),
   claimEvery: BigInt(process.env.MM_CLAIM_EVERY ?? 10),
 });
+
+const feedAbi = parseAbi([
+  "function latestRoundData() view returns (uint80, int256, uint256, uint256, uint80)",
+  "function decimals() view returns (uint8)",
+]);
 
 interface Quote {
   id: Hex;
@@ -99,8 +108,23 @@ export class MarketMaker {
       const spot = await this.ctx.public.readContract({ address: miniAmm, abi: miniAmmAbi, functionName: "spotPrice" });
       return tickForPrice(priceMin, spot);
     }
+    const cre = await this.crePrice();
+    if (cre !== undefined) return tickForPrice(priceMin, cre);
     const last = await this.ctx.public.readContract({ address, abi: metronomeAbi, functionName: "lastClearingTick" });
     return last > 0 ? last : this.opts.startTick;
+  }
+
+  /** The CRE MON/USD price in Metronome's units (raw quote per raw base, scaled by 1e36), if fresh. */
+  private async crePrice(): Promise<bigint | undefined> {
+    const { heartbeat, quoteDecimals } = this.ctx.deployment;
+    if (!heartbeat) return undefined;
+    const [[, answer, , updatedAt], decimals, block] = await Promise.all([
+      this.ctx.public.readContract({ address: heartbeat, abi: feedAbi, functionName: "latestRoundData" }),
+      this.ctx.public.readContract({ address: heartbeat, abi: feedAbi, functionName: "decimals" }),
+      this.ctx.public.getBlock(),
+    ]);
+    if (answer <= 0n || block.timestamp - updatedAt > BigInt(this.opts.creMaxAge)) return undefined;
+    return (answer * 10n ** BigInt(quoteDecimals) * 10n ** 36n) / 10n ** BigInt(decimals + 18);
   }
 
   private async requote(ref: number) {

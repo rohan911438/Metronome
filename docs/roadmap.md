@@ -51,6 +51,7 @@ Solo build. Design: [`architecture.md`](architecture.md). Submission target **Oc
 - [x] `MiniAMM.sol` + `SandwichLab.sol` (tests: AMM victim −4.17%, Metronome victim 0)
 - [x] Testnet market redeployed as **WMON/USDC** (Sep 26, `0x32f1…3761`; mainnet stays WMON/AUSD); keeper + MM + `pnpm taker` ran live: 3 fills between two wallets (see `docs/network.md`)
 - [x] Oct 3: testnet market redeployed as **WMON/tAUSD** (`0x753C…cF24`) on our open-mint `TestAUSD` (`0xA89C…d091`, ≤10M per mint; the Monad team's suggestion since Agora's faucet is empty); app has a "Mint 1,000 tAUSD" button; taker sold 1 MON into the MM's bid live
+- [x] Oct 3 (later): Agora's AUSD faucet is refilled (10k AUSD per request, one a minute). Testnet market back on the original **WMON/AUSD** v2 (`0x99E4…a889`, same code); app button "Get 10,000 AUSD" calls the faucet; tAUSD retired. The market maker centers on the CRE MON/USD price when it's fresh
 - [ ] SandwichLab + MiniAMM on testnet (rest of M2); limited by testnet MON (~2.05 left)
 - [x] `pnpm dev:local`: long-running local stack (Anvil + deploy + keeper + MM + background traders + one lab run) for frontend work
 
@@ -68,7 +69,7 @@ Solo build. Design: [`architecture.md`](architecture.md). Submission target **Oc
 ### Phase 4b — Perpl perps tab (Oct 4–7)
 - [x] Oct 4 (done Sep 26): `lib/perpl.ts` + `/perps` page: market picker (all open markets, MON first), mark/oracle price, 24h change, volume, open interest, funding, fees, candles (5m/1h/1d), live L2 book. Data comes through `app/api/perpl` (a cached pass-through for public REST paths only), because Perpl sends no CORS headers and its market-data WebSocket answers browser origins with 403. Validated in headless Edge at phone size against testnet: 11/11 checks
 - [x] Oct 5 (done Sep 26): Perpl account card on `/perps`, signed by the Mera wallet: approve exactly the deposit → `createAccount` → `allowOrderForwarding(true)`, resumable, with explicit states (not signed in / wrong network / **"100 AUSD required to activate Perpl trading on testnet"** / ready / account open). Paste-a-key fallback: key encrypted with a passkey-derived AES key before it touches localStorage; checked with a signed `GET /v1/trading/wallet`. `pnpm perpl:fork` runs the app against a local fork of testnet with a "Get test funds" button, so the real transactions run against Perpl's real contract. Validated in headless Edge: setup 17/17 (account #712 with 150 AUSD, forwarding event, zero leftover allowance), passkey key storage 10/10
-- [ ] Real run of the Perpl account setup: **needs ≥100 of Agora's AUSD** (Perpl only accepts `0xa901…22dC` on testnet; our tAUSD can't be used there). Plan: do it on mainnet with real AUSD once the user funds the wallet
+- [ ] Real testnet run of the Perpl account setup: **unblocked Oct 3** (deployer holds 10,000 AUSD from the faucet)
 - [ ] In-app API-key enrollment (`/api-key/payload` → EIP-712 wallet signature + Ed25519 proof → `/api-key/enroll`) with the passkey-derived key: **needs Perpl's origin whitelist**
 - [ ] Oct 6: trading WebSocket: signed requests, place market/limit orders, cancel; positions, open orders, P&L, collateral in AUSD; perps section in `/portfolio`
 - [ ] Oct 7: mobile polish; film on a real phone: passkey → AUSD balance → Metronome trade → Perpl trade → M3

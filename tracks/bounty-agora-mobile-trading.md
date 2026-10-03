@@ -37,4 +37,4 @@ We switch login from Privy to **Mera** and add a **Perpl** perps tab; Metronome 
 
 - **Mera:** Category Labs' TypeScript library that derives an EVM account from a passkey (WebAuthn PRF), with no backend or seed phrase. https://github.com/category-labs/mera, docs at https://mera.category.xyz
 - **Perpl:** fully onchain perps order book on Monad; testnet at testnet.perpl.xyz, API docs at https://github.com/PerplFoundation/api-docs
-- AUSD: testnet token `0xa901…22dC` exists, but the faucet is empty (checked Sep 26); the Agora API (docs.agora.finance/api) is mainnet-only.
+- AUSD: testnet token `0xa901…22dC` exists, and the faucet works again since Oct 3 (10,000 AUSD per request; the app has a one-tap button); the Agora API (docs.agora.finance/api) is mainnet-only.

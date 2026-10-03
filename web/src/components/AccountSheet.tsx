@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { createWalletClient, erc20Abi, http, parseEther, parseUnits, type Address } from "viem";
+import { createWalletClient, erc20Abi, http, parseAbi, parseEther, parseUnits, type Address } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { mockErc20Abi } from "@/lib/abi";
 import { BASE, QUOTE, chain, deployment, devChain, isFork, publicClient, rpcUrl } from "@/lib/config";
@@ -31,7 +31,7 @@ async function fundLocal(to: `0x${string}`) {
  * mint and its balance slot isn't discoverable, so it can't be dealt). The Perpl exchange holds millions.
  */
 const FORK_QUOTE_HOLDER: Address = "0x1964c32f0be608e7d29302aff5e61268e72080cc";
-/** Agora's testnet AUSD, Perpl's collateral (the testnet Metronome market quotes in our own open-mint tAUSD). */
+/** Agora's testnet AUSD: the testnet market's quote asset and Perpl's collateral. */
 const FORK_AUSD: Address = "0xa9012a055bd4e0eDfF8Ce09f960291C09D5322dC";
 
 async function fundFork(to: Address) {
@@ -53,8 +53,13 @@ async function fundFork(to: Address) {
   }
 }
 
-/** The testnet market quotes in TestAUSD, which anyone can mint (contracts/src/mocks/TestAUSD.sol). */
-const canMintQuote = chain.testnet && QUOTE.symbol === "tAUSD";
+/**
+ * Agora's testnet AUSD faucet: 10,000 AUSD per request to any address, at most one request a minute across everyone
+ * (MaxFrequencyExceeded), and only while the address holds under 100,000 AUSD.
+ */
+const AUSD_FAUCET: Address = "0xd236c18D274E54FAccC3dd9DDA4b27965a73ee6C";
+const faucetAbi = parseAbi(["function requestFunds(address to)", "error MaxFrequencyExceeded()"]);
+const hasFaucet = chain.testnet && !isFork && deployment.quote.toLowerCase() === FORK_AUSD.toLowerCase();
 
 export function AccountSheet({ onClose }: { onClose: () => void }) {
   const w = useWallet();
@@ -192,7 +197,7 @@ export function AccountSheet({ onClose }: { onClose: () => void }) {
                     .
                   </>
                 )}
-                {canMintQuote && (
+                {hasFaucet && (
                   <>
                     <button
                       disabled={funding}
@@ -200,26 +205,23 @@ export function AccountSheet({ onClose }: { onClose: () => void }) {
                         setFunding(true);
                         setFundError(undefined);
                         try {
-                          await trader.send({
-                            address: deployment.quote,
-                            abi: mockErc20Abi,
-                            functionName: "mint",
-                            args: [trader.address, parseUnits("1000", QUOTE.decimals)],
-                          });
+                          await trader.send({ address: AUSD_FAUCET, abi: faucetAbi, functionName: "requestFunds", args: [trader.address] });
                         } catch (e) {
-                          setFundError((e as Error).message.split("\n")[0]);
+                          const msg = (e as Error).message;
+                          setFundError(
+                            msg.includes("MaxFrequencyExceeded")
+                              ? "The faucet serves one request a minute across all users. Try again in a minute."
+                              : msg.split("\n")[0],
+                          );
                         } finally {
                           setFunding(false);
                         }
                       }}
                       className="mt-3 w-full rounded-2xl bg-accent py-3 font-medium text-accent-fg disabled:opacity-50"
                     >
-                      {funding ? "Minting…" : `Mint 1,000 ${QUOTE.symbol} (testnet)`}
+                      {funding ? "Requesting…" : `Get 10,000 ${QUOTE.symbol} from Agora's testnet faucet`}
                     </button>
-                    <p className="mt-2 text-xs">
-                      {QUOTE.symbol} is a testnet stand-in for AUSD while Agora&apos;s testnet faucet is empty. On mainnet the market quotes in
-                      real AUSD.
-                    </p>
+                    <p className="mt-2 text-xs">Testnet AUSD is also Perpl&apos;s collateral, so it can open a Perpl account (100 AUSD minimum).</p>
                     {fundError && <p className="mt-2 break-words text-xs text-sell">{fundError}</p>}
                   </>
                 )}

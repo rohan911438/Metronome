@@ -33,8 +33,11 @@ export interface Deployment {
   shards: number;
   minOrderSize: bigint;
   deployBlock: bigint;
+  quoteDecimals: number;
   miniAmm?: Address;
   sandwichLab?: Address;
+  /** MetronomeHeartbeat (Chainlink CRE receiver and MON/USD feed) for this market, if deployed. */
+  heartbeat?: Address;
 }
 
 export interface Ctx {
@@ -52,10 +55,15 @@ export interface Ctx {
 const CHAINS: Record<Network, Chain> = { local: anvil, testnet: monadTestnet, mainnet: monad };
 
 export function loadDeployment(chainId: number, root = repo): Deployment {
-  const raw = JSON.parse(readFileSync(resolve(root, `contracts/deployments/${chainId}.json`), "utf8")).metronome;
+  const all = JSON.parse(readFileSync(resolve(root, `contracts/deployments/${chainId}.json`), "utf8"));
+  const raw = all.metronome;
   if (!raw) throw new Error(`no "metronome" entry in deployments/${chainId}.json`);
+  const hb = all.heartbeat;
   return {
     ...raw,
+    // Deployments before the quote token was recorded are AUSD or the local 6-decimal mock.
+    quoteDecimals: Number(raw.quoteDecimals ?? 6),
+    heartbeat: hb && hb.metronome?.toLowerCase() === raw.address.toLowerCase() ? hb.address : undefined,
     priceMin: BigInt(raw.priceMin),
     shards: Number(raw.shards),
     minOrderSize: BigInt(raw.minOrderSize),

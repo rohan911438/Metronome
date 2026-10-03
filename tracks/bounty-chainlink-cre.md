@@ -41,7 +41,7 @@
 | Meaningfully used | The workflow is the market's keeper (settles every batch) and its price feed (`IAggregatorV3` for the oracle guard) |
 
 ## Status (Oct 3)
-- Built: `cre/metronome-heartbeat` (Go) + `contracts/src/cre/MetronomeHeartbeat.sol` receiver, live on testnet at `0x877a…48e7` (Oct 3, for the WMON/tAUSD market; the first receiver `0xAe2C…27F4` served the retired USDC market). 10 Foundry + 7 Go tests.
+- Built: `cre/metronome-heartbeat` (Go) + `contracts/src/cre/MetronomeHeartbeat.sol` receiver, live on testnet at `0x9975…874f` (Oct 3, for the WMON/AUSD market; earlier receivers `0x877a…48e7` and `0xAe2C…27F4` served retired markets). The market maker bot quotes around the CRE price. 10 Foundry + 7 Go tests.
 - Proven on testnet: price-only report `0xc610c306…f57b` and settle + price `0xab20831c…c387` (see `cre/metronome-heartbeat/README.md`).
 - Deploy access: still "Not enabled" on Oct 3. Not required: simulation is accepted, and Chainlink deploys simulated workflows for hackathon teams. If it gets enabled: `cre workflow deploy metronome-heartbeat --target production-settings`, then `setForwarder(0xF8344CFd5c43616a4366C34E3EEE75af79a74482)`.
 - Price source: Pyth Hermes now answers "unauthorized" without a key, so the workflow uses Coinbase's public spot endpoint.
