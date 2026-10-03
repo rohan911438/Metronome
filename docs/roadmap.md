@@ -21,7 +21,7 @@ Solo build. Design: [`architecture.md`](architecture.md). Submission target **Oc
 - [ ] Copy the remaining official sponsor rules into `tracks/`: Perpl, Mera ×2, Nansen, Chainlink, Envio. **These decide phases 4–5.**
 - [ ] Ask the Perpl team (user): whitelist our origin for API-key enrollment; testnet "USD" collateral; is the testnet beta open
 - [ ] Ask Agora (user): is a Perpl testnet trade OK for the demo, or must it be mainnet AUSD?
-- [ ] Ask Nansen (user): does the API cover Monad; free hackathon key?
+- [x] Nansen covers Monad (`chain: "monad"`); the user's key is on the free plan (100 trial credits, then 10 a day). Labels cost 100 credits, so the radar uses 1-credit endpoints
 - [x] Get testnet MON from the faucet
 - [x] Find the testnet AUSD address and WMON address; check for a Chainlink MON/USD feed on Monad
 - [x] `forge init contracts`, OpenZeppelin, `foundry.toml` with Monad testnet/mainnet RPCs
@@ -83,7 +83,7 @@ Solo build. Design: [`architecture.md`](architecture.md). Submission target **Oc
 - [ ] Indexer on testnet: needs an Envio API token (free, envio.dev) or Envio Cloud, and trading activity on the testnet market (M2)
 - [x] **`/stats` page** (done Sep 26): volume, batches, orders, traders, order-to-settlement delay, gas per action, keeper leaderboard, clearing-price chart, daily volume; live from the indexer, explains itself when no indexer is configured. Validated in headless Edge: 11/11
 - [ ] Portfolio history from the indexer with RPC fallback
-- [ ] **Oct 10 — Nansen MEV radar:** `bots/src/radar.ts` scans the busiest Monad mainnet AMM pools for same-block sandwiches and computes each victim's loss; labels attackers/victims via the Nansen API (key server-side only); writes `radar.json`; `/radar` page
+- [x] **Nansen MEV radar (done Oct 3):** `pnpm radar` (`bots/src/radar.ts`): Nansen `tgm/dex-trades` (1 credit per 1,000 WMON trades, with trader labels) → sandwich candidates (same wallet buys and sells around another trade within 2 s) → verified on Monad mainnet by block and transaction index → bot share of flow, Nansen first funders → `web/public/radar.json` → `/radar` page (linked from the Lab). First run: 5,000 WMON trades over 5.6 h on Oct 3 ($723k): 5 bot wallets made 75% of trades and 68% of volume (the top one alone 40%); 18 sandwich-shaped patterns, 0 verified on-chain (never front → victim → back in one block). 9 credits per run
 - [x] **Benchmark** K=1/4/16 with 200 wallets (done Sep 26, [docs/benchmark.md](benchmark.md)): sharding cuts Metronome's conflict chain 24 → 10, but escrow `transferFrom` into one exchange balance keeps the whole-tx chain at ~100 for any K, and K=16 costs 3.2× settle gas
 - [ ] Decide mainnet K (small K recommended while escrow is in the hot path); consider internal per-user balances to take escrow out of the shared slot
 

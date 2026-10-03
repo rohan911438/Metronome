@@ -142,7 +142,7 @@ One main track, plus sponsor bounties that the same product qualifies for. Detai
 | **Perpl — Best use of Perpl's API** | Perps tab: market data, account setup and trading in-app | Integrated; account + long/short trades live on testnet |
 | **Agora — Best Mobile Trading App** | Mobile app: passkey login, AUSD balance, Metronome and Perpl trades | Passkey → AUSD (faucet button) → Perpl trade works on testnet; filming on a real phone next |
 | **Chainlink — Best CRE workflow** | CRE workflow that settles batches and brings MON/USD from an external API on-chain | Built; settle + price reports live on testnet via `simulate --broadcast` (accepted for the bounty) |
-| **Nansen — Best use of Nansen** | MEV radar of real Monad sandwiches, attackers labeled by Nansen | Planned |
+| **Nansen — Best use of Nansen** | MEV radar on Monad mainnet: who trades WMON (bots vs. everyone else) and verified sandwiches, from Nansen trades and labels | Built; first findings on `/radar` |
 
 ## Integrations
 
@@ -155,7 +155,7 @@ One main track, plus sponsor bounties that the same product qualifies for. Detai
 | **Agora AUSD faucet** | "Get 10,000 AUSD" button in the app calls Agora's testnet faucet; the same AUSD funds a Perpl account | ✅ Testnet |
 | **AUSD** ([Agora](https://www.agora.finance)) | Quote asset of the mainnet market and Perpl collateral | ⏳ Mainnet |
 | **Chainlink** | CRE workflow as the exchange's heartbeat: [`cre/metronome-heartbeat`](cre/metronome-heartbeat) settles every pending batch and stores a DON-median MON/USD price through a [receiver contract](contracts/src/cre/MetronomeHeartbeat.sol) that doubles as a price feed | ✅ Settle + price reports live on testnet via `simulate --broadcast` |
-| **Nansen** | MEV radar: finds real sandwich attacks on Monad AMMs and labels the attackers | ⏳ Planned |
+| **Nansen** | MEV radar (`/radar`, `pnpm radar`): Nansen DEX trades with trader labels and first funders, sandwich candidates verified block by block on mainnet. 5,000 WMON trades over 5.6 h on Oct 3 ($723k): 5 bot wallets made 75% of trades and 68% of volume (the top one alone 40%); 18 sandwich-shaped patterns, 0 verified on-chain (never front → victim → back in one block) | ✅ Monad mainnet |
 
 ## Where it goes next
 
@@ -186,7 +186,7 @@ Metronome is meant to be **infrastructure**, not a single app:
 | Shard benchmark K=1/4/16 ([results](docs/benchmark.md)) | Oct 10 | ✅ |
 | Chainlink CRE workflow: built, 17 tests, settles batches and brings MON/USD on-chain, live on testnet ([details](#chainlink-cre-the-exchanges-heartbeat-and-price-feed)) | Oct 8 | ✅ |
 | CRE workflow deployed on Chainlink's network | Oct 10 | ⏳ optional: Chainlink deploys simulated hackathon workflows; our deploy access is pending |
-| Nansen MEV radar | Oct 10 | ⏳ |
+| Nansen MEV radar | Oct 10 | ✅ Oct 3 |
 | Monad mainnet | Oct 11 | ⏳ |
 
 **Tests:** 104 Foundry tests (unit, differential fuzz, invariants, gas and shard benchmarks) and 7 Go workflow tests, all run in CI.

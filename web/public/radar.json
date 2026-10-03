@@ -1,0 +1,85 @@
+{
+  "generatedAt": "2026-10-03T07:56:28.351Z",
+  "token": {
+    "symbol": "WMON",
+    "address": "0x3bd359c1119da7da1d913d1c4d2b7c461115433a",
+    "chain": "monad"
+  },
+  "window": {
+    "from": "2026-10-03T02:18:26.000Z",
+    "to": "2026-10-03T07:56:07.000Z"
+  },
+  "trades": 5000,
+  "volumeUsd": 723007.895349307,
+  "pairs": {
+    "USDC": 2388,
+    "AUSD": 372,
+    "MOE": 392,
+    "WETH": 790,
+    "WBTC": 485,
+    "MON": 82,
+    "CBBTC": 401,
+    "🌱 LUCI": 1,
+    "XAUT0": 8,
+    "APR": 17,
+    "AMONWETH": 1,
+    "USDT0": 37,
+    "⚠️ CSHMON": 2,
+    "SHMON": 15,
+    "?": 1,
+    "APRMON": 2,
+    "DUST": 1,
+    "EMO": 1,
+    "YT-AUSD-8OCT2026": 1,
+    "MONCOCK": 1,
+    "CHOG": 1,
+    "AUSDCT0-GAUGE": 1
+  },
+  "bots": [
+    {
+      "address": "0x80c74517bcc2d67ffe02d3ed886796272f647210",
+      "label": null,
+      "trades": 2003,
+      "volumeUsd": 155699.39420798398,
+      "funder": null
+    },
+    {
+      "address": "0xe1aa0010b4c25f38a7c8a724fdd79c6e8ce543fe",
+      "label": null,
+      "trades": 691,
+      "volumeUsd": 21658.176777140605,
+      "funder": null
+    },
+    {
+      "address": "0x06ec71e26afbb72e7a446eccc4c922c935ba5b9a",
+      "label": null,
+      "trades": 532,
+      "volumeUsd": 188325.1495953067,
+      "funder": null
+    },
+    {
+      "address": "0x000002abc8f53eccd78ef494727434dc762a9285",
+      "label": null,
+      "trades": 395,
+      "volumeUsd": 103821.20105183063,
+      "funder": {
+        "address": "0xbaed383ede0e5d9d72430661f3285daa77e9439f",
+        "name": "High Activity"
+      }
+    },
+    {
+      "address": "0xd3ff9cf879982e074f89e44056baf06b1f0e7d6b",
+      "label": "High Activity",
+      "trades": 141,
+      "volumeUsd": 21108.74840508424
+    }
+  ],
+  "botTrades": 3762,
+  "botVolumeUsd": 490612.6700373461,
+  "candidates": 18,
+  "sandwiches": [],
+  "credits": {
+    "used": 9,
+    "remaining": 80
+  }
+}

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { erc20Abi, maxUint256, parseUnits } from "viem";
 import { miniAmmAbi, sandwichLabAbi } from "@/lib/abi";
@@ -94,6 +95,9 @@ export default function LabPage() {
           The same attack on two venues. A bot buys just before the victim and sells just after. On an AMM the victim pays the price the bot pushed
           up. On Metronome all three orders land in the same batch and clear at one price, so there is nothing to push.
         </p>
+        <Link href="/radar" className="mt-2 inline-block text-sm text-accent underline">
+          MEV radar: who really trades WMON on Monad mainnet →
+        </Link>
       </div>
 
       <div className="grid grid-cols-2 gap-2">

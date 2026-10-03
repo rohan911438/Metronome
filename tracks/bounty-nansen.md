@@ -29,3 +29,9 @@ Label the attacker addresses' activity on chains Nansen does cover (many MEV ope
 - Real numbers from real Monad users, not a synthetic demo
 - Nansen is central to the page (who is doing this to users), not a sidebar
 - The page closes the loop: here's the loss on today's venues → here's the same trade on Metronome
+
+## Status (Oct 3)
+- Built: `bots/src/radar.ts` (`pnpm radar`) and the `/radar` page. Key in `bots/.env` only; the page reads the `web/public/radar.json` snapshot.
+- Credits: free plan (100 trial, then 10/day). `profiler/address/labels` costs 100, so labels come from `tgm/dex-trades` (trader_address_label, 1 credit per 1,000 trades); `profiler/address/first-funder` (1 credit, `chain: "all"` only) for the top bots.
+- First findings: 5,000 WMON trades over 5.6 h on Oct 3 ($723k): 5 bot wallets made 75% of trades and 68% of volume (the top one alone 40%); 18 sandwich-shaped patterns, 0 verified on-chain (never front → victim → back in one block). Only one bot has a known first funder in Nansen; none of the top four carry a Nansen label, which is itself a finding (fresh, unlabeled bot wallets dominate Monad DEX flow).
+- Free search (`search/general`, 0 credits) resolves token addresses on Monad (e.g. WMON at $0.0315).
