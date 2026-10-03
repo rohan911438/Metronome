@@ -45,7 +45,8 @@ async function main() {
       const wmon = await ctx.public.readContract({ address: d.base, abi: erc20Abi, functionName: "balanceOf", args: [me] });
       if (wmon < size) {
         const hash = await w.writeContract({ address: d.base, abi: wmonAbi, functionName: "deposit", value: size - wmon });
-        await ctx.public.waitForTransactionReceipt({ hash });
+        const r = await ctx.public.waitForTransactionReceipt({ hash });
+        if (r.status !== "success") throw new Error(`wrapping MON failed (${hash}); does ${me} hold enough MON?`);
       }
     }
 

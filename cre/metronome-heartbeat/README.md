@@ -51,6 +51,8 @@ Live runs on Oct 3, 2026 (`simulate --broadcast`, on the WMON/tAUSD market and r
   [`0xab20831c…c387`](https://testnet.monadscan.com/tx/0xab20831cb1395fe34511c3a1658336871d18f1b5d97b46f789a58eefe81fc387)
   (forwarder → `onReport` → `PriceUpdated` → `BatchSettled` → `Heartbeat`).
 
+**Oct 3, CRE as the only keeper** (no keeper bot running; WMON/AUSD market, receiver `0x9975…874f`): the market maker quoted around the CRE price (bids ticks 2269/2271, asks 2275/2277 ≈ $0.0312); a taker [bought 1 MON](https://testnet.monadscan.com/tx/0x3030ca6c2530804178789de40a943ee7212a3db59caed31de177ff62c4a69fec) at tick 2275 and the next workflow run [settled that batch with MON/USD $0.03129](https://testnet.monadscan.com/tx/0x23421b9b8c6eb4098da8df6e313b5535facbda8d8be293f9f8862b08f8c7b7f0) within 4 seconds. Earlier in the run, reports at a 1.5M gas limit ran out of gas on a batch where 4 resting orders joined fresh pools (~1.02M gas through the receiver); the forwarder swallowed it and the simulator reported success. Fixed: 3M limit ([settled](https://testnet.monadscan.com/tx/0x4d30147547c22f4635fb399700b3dbcb957f586dc174d39fcf0fd412e1690798)) and a post-report check in the workflow. Cost: each report is billed at its full limit (0.15–0.31 MON at 102 gwei), so CRE runs are for demos until the deployed workflow runs on Chainlink's network.
+
 The first version (settle only, Sep 29) settled batch 66,620,995 on the retired USDC market in
 [`0x02e34a3a…4995`](https://testnet.monadscan.com/tx/0x02e34a3a1c734793a2251446dac627fa3996002c2c2d62dcbf009dfd45d64995).
 
@@ -60,8 +62,12 @@ submission evidence.
 
 ## Gas
 
-Monad charges for the gas **limit**, not the gas used, so `gasLimit` (1.5M) is sized to a busy batch: settling 200 orders
-at 16 shards costs ~882k gas ([benchmark](../../docs/benchmark.md)), plus the forwarder's overhead.
+Monad charges for the gas **limit**, not the gas used, so `gasLimit` is sized to a busy batch, and it is **3M**. 1.5M was
+too little on Oct 3: a batch where four resting orders join fresh pools costs ~1.02M gas through the receiver on Monad
+(cold storage writes cost more there than in the Anvil benchmark, where 200 orders at 16 shards took ~882k), and the
+forwarder's own overhead comes out of the same limit. The forwarder swallows a receiver that runs out of gas and a
+simulated write doesn't report the receiver's status, so the workflow re-reads `nextPendingBatch()` after each settle report
+and fails loudly if the batch is still pending. At testnet's 102 gwei a report costs ~0.31 MON.
 
 ## Deploy
 

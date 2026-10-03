@@ -25,7 +25,7 @@ var testConfig = &Config{
 	ChainName:        "monad-testnet",
 	MetronomeAddress: "0x99E4DBCF8edE8092Be972307eB3d0Cd91ecBa889",
 	HeartbeatAddress: "0x99758F4e8Ce8E9A5364d1a6aBc2a7cF40ac9874f",
-	GasLimit:         1_500_000,
+	GasLimit:         3_000_000,
 	PriceURL:         "https://api.coinbase.com/v2/prices/MON-USD/spot",
 	PriceMaxAgeSec:   300,
 }
@@ -36,19 +36,26 @@ var (
 )
 
 // newChain mocks Monad testnet: nextPendingBatch() returns pending, priceUpdatedAt() returns updatedAt, the latest
-// block is head, and every report written is recorded. onReportOK decides whether onReport succeeds.
+// block is head, and every report written is recorded. onReportOK decides whether onReport succeeds; a successful
+// report settles the pending batch unless silentFailure is set (the forwarder swallowed an out-of-gas receiver).
+var silentFailure bool
+
 func newChain(t *testing.T, pending, updatedAt, head int64, onReportOK bool) *[][]byte {
 	selector, err := evm.ChainSelectorFromName(testConfig.ChainName)
 	require.NoError(t, err)
 	chain, err := evmmock.NewClientCapability(selector, t)
 	require.NoError(t, err)
 
+	settled := false
 	chain.CallContract = func(_ context.Context, in *evm.CallContractRequest) (*evm.CallContractReply, error) {
 		var v int64
 		switch {
 		case common.BytesToAddress(in.Call.To) == common.HexToAddress(testConfig.MetronomeAddress) &&
 			common.Bytes2Hex(in.Call.Data) == common.Bytes2Hex(nextPendingBatchSelector):
 			v = pending
+			if settled {
+				v = 0
+			}
 		case common.BytesToAddress(in.Call.To) == common.HexToAddress(testConfig.HeartbeatAddress) &&
 			common.Bytes2Hex(in.Call.Data) == common.Bytes2Hex(priceUpdatedAtSelector):
 			v = updatedAt
@@ -67,6 +74,7 @@ func newChain(t *testing.T, pending, updatedAt, head int64, onReportOK bool) *[]
 		require.Equal(t, common.HexToAddress(testConfig.HeartbeatAddress).Bytes(), in.Receiver)
 		require.Equal(t, testConfig.GasLimit, in.GasConfig.GasLimit)
 		reports = append(reports, in.Report.RawReport[cre.ReportMetadataHeaderLength:])
+		settled = onReportOK && !silentFailure
 		status := evm.ReceiverContractExecutionStatus_RECEIVER_CONTRACT_EXECUTION_STATUS_SUCCESS
 		if !onReportOK {
 			status = evm.ReceiverContractExecutionStatus_RECEIVER_CONTRACT_EXECUTION_STATUS_REVERTED
@@ -182,4 +190,14 @@ func TestRevertedReceiverIsAnError(t *testing.T) {
 
 	_, err := onCronTrigger(testConfig, newRuntime(t), tick)
 	require.ErrorContains(t, err, "onReport reverted")
+}
+
+func TestSilentReceiverFailureIsAnError(t *testing.T) {
+	silentFailure = true
+	defer func() { silentFailure = false }()
+	newChain(t, 990, 0, 1000, true)
+	newPriceAPI(t, coinbaseBody, "")
+
+	_, err := onCronTrigger(testConfig, newRuntime(t), tick)
+	require.ErrorContains(t, err, "still pending after report")
 }

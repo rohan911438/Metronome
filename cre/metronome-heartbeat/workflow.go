@@ -195,6 +195,17 @@ func onCronTrigger(config *Config, runtime cre.Runtime, trigger *cron.Payload) (
 	}
 
 	tx := common.BytesToHash(resp.TxHash).Hex()
+	// The forwarder catches a failing receiver, and a simulated write doesn't report its status, so check the result:
+	// a batch that is still pending means onReport failed (usually out of gas: raise gasLimit).
+	if pending.Sign() != 0 {
+		after, err := readUint(runtime, client, config.MetronomeAddress, nextPendingBatchSelector)
+		if err != nil {
+			return nil, fmt.Errorf("nextPendingBatch after report: %w", err)
+		}
+		if after.Cmp(pending) == 0 {
+			return nil, fmt.Errorf("batch %v still pending after report %s: onReport failed (out of gas at %d?)", pending, tx, config.GasLimit)
+		}
+	}
 	status := "settled"
 	if pending.Sign() == 0 {
 		status = "price"
