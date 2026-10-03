@@ -4,6 +4,7 @@ import { useState } from "react";
 import { CandleChart } from "@/components/CandleChart";
 import { PerpBook } from "@/components/PerpBook";
 import { PerplAccountCard } from "@/components/PerplAccountCard";
+import { PerplTradeCard } from "@/components/PerplTradeCard";
 import { amount, fmtInterval, fmtNum, fmtPerpPrice, perpl, scaled, sortMarkets, usePoll } from "@/lib/perpl";
 
 const RESOLUTIONS = [
@@ -132,6 +133,8 @@ export default function PerpsPage() {
           <div className="h-64 animate-pulse rounded-xl bg-surface-2" />
         )}
       </section>
+
+      <PerplTradeCard ctx={ctx} market={market} state={state} />
 
       <PerplAccountCard ctx={ctx} />
     </div>

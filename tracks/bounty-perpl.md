@@ -33,6 +33,11 @@ Perpl is a fully onchain perpetual-futures order book on Monad. Its trades are a
 - Onboarding to a first perp trade entirely inside our app: passkey → deposit → key → trade, no visit to perpl.xyz
 - One app, two venues: spot on Metronome (MEV-proof batch auction), perps on Perpl
 
+## Trading (Oct 3)
+**Live on Monad testnet (Oct 3)**, from a passkey wallet in the app (headless Edge, virtual passkey): Perpl account #792 opened with 150 AUSD ([approve](https://testnet.monadscan.com/tx/0x59800065fd8024e31451a1cc008a26439c50acab5143ce4ac15fb4670225a49a), [createAccount](https://testnet.monadscan.com/tx/0xd224f5c33e36e3ec7a3d7647dcb0fcf25da4f0fe77653f5faa052f91714efdac), [forwarding](https://testnet.monadscan.com/tx/0xc9768b6332e649bc90b88b41c52a7cdb811708bb914ece27ea6a364d0f53edf0)); [long 1,000 MON at 2×](https://testnet.monadscan.com/tx/0xc54e2ccb0a1465f5ff692b48b14370c1117e86527937e396185c1cebac73cc3d) filled at 0.03132 and was [closed](https://testnet.monadscan.com/tx/0x4a1001261ea5f8b4fa26e00aa6bb45ae14830575e61aa87515a97b29f30d841a); a [short of 500 MON](https://testnet.monadscan.com/tx/0x5698100ce177657c7695c5c6b785cbab91a2b449ddd0701564f8e6bf08b2cd9a) filled at 0.03125. The test browser's virtual passkey was discarded afterwards, so that short is still open on testnet (account #792, wallet `0x9058…C2c1`).
+
+Order fields, from dex-sdk `request.rs`: orderType 0 open long / 1 open short / 2 close long / 3 close short / 4 cancel; `pricePNS`, `lotLNS` scaled by the market's decimals; `leverageHdths` in hundredths; `maxMatches` 1..1000 (0 silently means 1000); `maxNegPnlCollatBPS` 1000 (SDK default). `getPosition` positionType 0 = long, 1 = short. Error `0x7d19aaec(perpId, oracleTime, now, maxAge)`: oracle price older than `refPriceMaxAgeSec` (60 s on MON).
+
 ## Live findings (Sep 26, probed testnet.perpl.xyz)
 - **Testnet collateral is AUSD** `0xa9012a…22dC` (the same testnet AUSD Metronome uses), not the "USD" token in the docs. So the Agora demo (AUSD + Perpl trade) works on testnet.
 - `/v1/pub/context`: exchange `0x1964c32f…80cc`, **min account open 100 AUSD** (100000000), min deposit 10 AUSD. Markets: BTC 16, ETH 32, SOL 48, **MON 64** (price decimals 5, size decimals 0), ZEC 256, LIT 272, PUMP 320; taker fee 345 micros; order TTL 20 blocks.

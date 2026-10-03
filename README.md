@@ -125,7 +125,7 @@ A mobile-first trading app designed for people who have never used a wallet:
 - **Filled within about a second.** Funds arrive automatically; there is no "claim" button to find.
 - **See the auction live:** supply and demand curves animate and cross every block.
 - **Sandwich lab:** run the same attack against an AMM and against Metronome, side by side, and watch the victim's loss.
-- **Perps tab:** Perpl's perpetual futures markets (live prices, candles, order book) and opening a Perpl account from the same passkey wallet.
+- **Perps tab:** Perpl's perpetual futures markets (live prices, candles, order book) opening a Perpl account and trading perps (long/short at market, leverage, live position and P&L, one-tap close) from the same passkey wallet, straight on Perpl's contract.
 - **Stats:** all-time volume, batches, traders, time to settlement, gas per action and keepers, from our Envio indexer.
 
 ## Tracks and bounties
@@ -139,8 +139,8 @@ One main track, plus sponsor bounties that the same product qualifies for. Detai
 | **Mera — Best Mera-Powered UX** | Face ID login, popup-free signing in the app | Integrated |
 | **Mera — One Passkey, Many Keys** | One passkey derives the wallet key, the Perpl API key and an encryption key | Integrated |
 | **Envio — Best Use of Envio** | Indexer behind the Stats page | Integrated (local chain); testnet needs an API token |
-| **Perpl — Best use of Perpl's API** | Perps tab: market data and account setup in-app | Partly integrated; trading waits on testnet AUSD |
-| **Agora — Best Mobile Trading App** | Mobile app: passkey login, AUSD balance, Metronome and Perpl trades | Paused until Agora replies about testnet AUSD |
+| **Perpl — Best use of Perpl's API** | Perps tab: market data, account setup and trading in-app | Integrated; account + long/short trades live on testnet |
+| **Agora — Best Mobile Trading App** | Mobile app: passkey login, AUSD balance, Metronome and Perpl trades | Passkey → AUSD (faucet button) → Perpl trade works on testnet; filming on a real phone next |
 | **Chainlink — Best CRE workflow** | CRE workflow that settles batches and brings MON/USD from an external API on-chain | Built; settle + price reports live on testnet via `simulate --broadcast` (accepted for the bounty) |
 | **Nansen — Best use of Nansen** | MEV radar of real Monad sandwiches, attackers labeled by Nansen | Planned |
 
@@ -151,7 +151,7 @@ One main track, plus sponsor bounties that the same product qualifies for. Detai
 | **Monad** | Execution layer: 300 ms batches, parallel execution, cheap clearing | ✅ Live on testnet |
 | **Mera** | Passkey login; one passkey derives the wallet key, the Perpl API key and a device encryption key; popup-free signing | ✅ In the app |
 | **Envio** | HyperIndex indexer ([`indexer/`](indexer/README.md)) behind the Stats page; totals checked against raw chain logs | ✅ Local chain · ⏳ testnet |
-| **Perpl** | Perps tab: live markets, candles and order book; open a Perpl account (approve, deposit, one-click trading) from the passkey wallet; paste an API key, stored encrypted with the passkey | ✅ Data + account setup · ⏳ trading |
+| **Perpl** | Perps tab: live markets, candles and order book; open a Perpl account (approve, deposit, one-click trading) from the passkey wallet; paste an API key, stored encrypted with the passkey | ✅ Data, account setup and trading, live on testnet |
 | **Agora AUSD faucet** | "Get 10,000 AUSD" button in the app calls Agora's testnet faucet; the same AUSD funds a Perpl account | ✅ Testnet |
 | **AUSD** ([Agora](https://www.agora.finance)) | Quote asset of the mainnet market and Perpl collateral | ⏳ Mainnet |
 | **Chainlink** | CRE workflow as the exchange's heartbeat: [`cre/metronome-heartbeat`](cre/metronome-heartbeat) settles every pending batch and stores a DON-median MON/USD price through a [receiver contract](contracts/src/cre/MetronomeHeartbeat.sol) that doubles as a price feed | ✅ Settle + price reports live on testnet via `simulate --broadcast` |
@@ -179,8 +179,8 @@ Metronome is meant to be **infrastructure**, not a single app:
 | Bots live on testnet: keeper + market maker, 3 taker fills between two wallets, each settled within 1–2 blocks | Oct 3 | ✅ |
 | Mobile web app (Next.js PWA): trade, portfolio, batch explorer, sandwich lab | Oct 3 | ✅ |
 | Mera passkey login (one passkey → wallet key + Perpl key) | Oct 3 | ✅ |
-| Perpl perps tab: live markets, account setup from the passkey wallet (tested on a fork of testnet against Perpl's contract) | Oct 7 | ✅ |
-| Perpl trading from the app | Oct 7 | ⏳ waiting on testnet AUSD |
+| Perpl perps tab: live markets, account setup from the passkey wallet (live on testnet) | Oct 7 | ✅ |
+| Perpl trading from the app (on-chain `execOrder`, no API key needed) | Oct 7 | ✅ live on testnet Oct 3 |
 | End-to-end trade on a phone | Oct 7 | ⏳ |
 | Envio indexer + Stats page | Oct 9 | ✅ |
 | Shard benchmark K=1/4/16 ([results](docs/benchmark.md)) | Oct 10 | ✅ |
