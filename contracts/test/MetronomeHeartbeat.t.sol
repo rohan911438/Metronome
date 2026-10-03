@@ -20,7 +20,7 @@ contract MetronomeHeartbeatTest is MetronomeTestBase {
 
     function _report(uint256 batchId) internal {
         vm.prank(forwarder);
-        hb.onReport("", abi.encode(batchId));
+        hb.onReport("", abi.encode(batchId, int256(0), uint256(0)));
     }
 
     function test_reportSettlesEveryPendingBatch() public {
@@ -57,7 +57,7 @@ contract MetronomeHeartbeatTest is MetronomeTestBase {
     function test_onlyForwarder() public {
         vm.expectRevert(abi.encodeWithSelector(MetronomeHeartbeat.NotForwarder.selector, alice));
         vm.prank(alice);
-        hb.onReport("", abi.encode(uint256(1)));
+        hb.onReport("", abi.encode(uint256(1), int256(0), uint256(0)));
     }
 
     function test_openBatchReverts() public {
@@ -94,6 +94,68 @@ contract MetronomeHeartbeatTest is MetronomeTestBase {
         hb.setForwarder(real);
         vm.expectRevert(abi.encodeWithSelector(MetronomeHeartbeat.NotForwarder.selector, forwarder));
         _report(1);
+    }
+
+    // ------------------------------------------------------------------ CRE price feed
+
+    function _priceReport(uint256 batchId, int256 price, uint256 observedAt) internal {
+        vm.prank(forwarder);
+        hb.onReport("", abi.encode(batchId, price, observedAt));
+    }
+
+    function test_priceOnlyReportStoresPriceWithoutSettling() public {
+        uint256 b = block.number;
+        _buy(alice, T, 1e18);
+        _sell(bob, T, 1e18);
+        _next();
+        vm.warp(1000);
+
+        vm.expectEmit(address(hb));
+        emit MetronomeHeartbeat.PriceUpdated(1, 3.16e6, 990);
+        _priceReport(0, 3.16e6, 990);
+
+        (uint80 roundId, int256 answer,, uint256 updatedAt,) = hb.latestRoundData();
+        assertEq(roundId, 1);
+        assertEq(answer, 3.16e6);
+        assertEq(updatedAt, 990);
+        assertEq(hb.decimals(), 8);
+        assertEq(m.nextPendingBatch(), b); // nothing settled
+    }
+
+    function test_olderOrFutureOrNonPositivePriceIsIgnored() public {
+        vm.warp(1000);
+        _priceReport(0, 3e6, 990);
+        _priceReport(0, 4e6, 980); // older than the stored price
+        _priceReport(0, 5e6, 1001); // from the future
+        _priceReport(0, 0, 995); // not a price
+        _priceReport(0, -1, 995);
+        (uint80 roundId, int256 answer,, uint256 updatedAt,) = hb.latestRoundData();
+        assertEq(roundId, 1);
+        assertEq(answer, 3e6);
+        assertEq(updatedAt, 990);
+    }
+
+    /// The receiver is the market's price feed: a report stores the price first, then settles against it.
+    function test_guardReadsReportedPrice() public {
+        vm.prank(owner);
+        m.setOracle(address(hb), 500, 1 hours);
+
+        vm.warp(1000);
+        uint256 b1 = block.number;
+        _buy(alice, T, 1e18);
+        _sell(bob, T, 1e18);
+        _next();
+        _priceReport(b1, 1e8, 1000); // $1: the batch clears near $1
+        assertFalse(m.getBatchResult(b1).voided);
+        assertEq(m.getBatchResult(b1).volume, 1e18);
+
+        uint256 b2 = block.number;
+        _buy(alice, T, 1e18);
+        _sell(bob, T, 1e18);
+        _next();
+        vm.warp(1010);
+        _priceReport(b2, 2e8, 1010); // $2: 100% away, the batch is voided and refunded
+        assertTrue(m.getBatchResult(b2).voided);
     }
 
     function test_supportsInterface() public view {

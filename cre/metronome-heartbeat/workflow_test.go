@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"math/big"
 	"testing"
 	"time"
@@ -10,6 +11,8 @@ import (
 	"github.com/smartcontractkit/chainlink-protos/cre/go/values/pb"
 	"github.com/smartcontractkit/cre-sdk-go/capabilities/blockchain/evm"
 	evmmock "github.com/smartcontractkit/cre-sdk-go/capabilities/blockchain/evm/mock"
+	"github.com/smartcontractkit/cre-sdk-go/capabilities/networking/http"
+	httpmock "github.com/smartcontractkit/cre-sdk-go/capabilities/networking/http/mock"
 	"github.com/smartcontractkit/cre-sdk-go/capabilities/scheduler/cron"
 	"github.com/smartcontractkit/cre-sdk-go/cre"
 	"github.com/smartcontractkit/cre-sdk-go/cre/testutils"
@@ -20,25 +23,39 @@ import (
 var testConfig = &Config{
 	Schedule:         "*/30 * * * * *",
 	ChainName:        "monad-testnet",
-	MetronomeAddress: "0x32f11865b2272B24f0F8174598EA64A82fc63761",
-	HeartbeatAddress: "0xAe2C3113aF7C897DAcc456Dc78234724179d27F4",
+	MetronomeAddress: "0x753CC9fb3F26d208AF354a672255B7eDe78bcF24",
+	HeartbeatAddress: "0x877aa5aBfC1250E19B00F2BB5dbc253057aC48e7",
 	GasLimit:         1_500_000,
+	PriceURL:         "https://api.coinbase.com/v2/prices/MON-USD/spot",
+	PriceMaxAgeSec:   300,
 }
 
-var tick = &cron.Payload{ScheduledExecutionTime: timestamppb.New(time.Date(2026, 9, 29, 12, 0, 0, 0, time.UTC))}
+var (
+	now  = time.Date(2026, 10, 3, 12, 0, 0, 0, time.UTC)
+	tick = &cron.Payload{ScheduledExecutionTime: timestamppb.New(now)}
+)
 
-// newChain mocks Monad testnet: nextPendingBatch() returns pending, the latest block is head, and every report
-// written is recorded. writeStatus decides whether onReport succeeds.
-func newChain(t *testing.T, pending, head int64, onReportOK bool) *[][]byte {
+// newChain mocks Monad testnet: nextPendingBatch() returns pending, priceUpdatedAt() returns updatedAt, the latest
+// block is head, and every report written is recorded. onReportOK decides whether onReport succeeds.
+func newChain(t *testing.T, pending, updatedAt, head int64, onReportOK bool) *[][]byte {
 	selector, err := evm.ChainSelectorFromName(testConfig.ChainName)
 	require.NoError(t, err)
 	chain, err := evmmock.NewClientCapability(selector, t)
 	require.NoError(t, err)
 
 	chain.CallContract = func(_ context.Context, in *evm.CallContractRequest) (*evm.CallContractReply, error) {
-		require.Equal(t, common.HexToAddress(testConfig.MetronomeAddress).Bytes(), in.Call.To)
-		require.Equal(t, nextPendingBatchSelector, in.Call.Data)
-		out, err := uint256Args.Pack(big.NewInt(pending))
+		var v int64
+		switch {
+		case common.BytesToAddress(in.Call.To) == common.HexToAddress(testConfig.MetronomeAddress) &&
+			common.Bytes2Hex(in.Call.Data) == common.Bytes2Hex(nextPendingBatchSelector):
+			v = pending
+		case common.BytesToAddress(in.Call.To) == common.HexToAddress(testConfig.HeartbeatAddress) &&
+			common.Bytes2Hex(in.Call.Data) == common.Bytes2Hex(priceUpdatedAtSelector):
+			v = updatedAt
+		default:
+			t.Fatalf("unexpected call to %x: %x", in.Call.To, in.Call.Data)
+		}
+		out, err := uint256Args.Pack(big.NewInt(v))
 		require.NoError(t, err)
 		return &evm.CallContractReply{Data: out}, nil
 	}
@@ -63,6 +80,37 @@ func newChain(t *testing.T, pending, head int64, onReportOK bool) *[][]byte {
 	return &reports
 }
 
+// newPriceAPI mocks the price endpoint. A non-empty errMsg makes every request fail. Returns the request count.
+func newPriceAPI(t *testing.T, body string, errMsg string) *int {
+	api, err := httpmock.NewClientCapability(t)
+	require.NoError(t, err)
+	calls := 0
+	api.SendRequest = func(_ context.Context, in *http.Request) (*http.Response, error) {
+		calls++
+		require.Equal(t, testConfig.PriceURL, in.Url)
+		require.Equal(t, "GET", in.Method)
+		if errMsg != "" {
+			return nil, errors.New(errMsg)
+		}
+		return &http.Response{StatusCode: 200, Body: []byte(body)}, nil
+	}
+	return &calls
+}
+
+func newRuntime(t *testing.T) *testutils.TestRuntime {
+	runtime := testutils.NewRuntime(t, testutils.Secrets{})
+	runtime.SetTimeProvider(func() time.Time { return now })
+	return runtime
+}
+
+func wantReport(t *testing.T, through, price int64) []byte {
+	b, err := reportArgs.Pack(big.NewInt(through), big.NewInt(price), big.NewInt(now.Unix()-2))
+	require.NoError(t, err)
+	return b
+}
+
+const coinbaseBody = `{"data":{"amount":"0.0315885","base":"MON","currency":"USD"}}`
+
 func TestInitWorkflow(t *testing.T) {
 	runtime := testutils.NewRuntime(t, testutils.Secrets{})
 	workflow, err := InitWorkflow(testConfig, runtime.Logger(), nil)
@@ -72,33 +120,66 @@ func TestInitWorkflow(t *testing.T) {
 }
 
 func TestIdleTickWritesNothing(t *testing.T) {
-	reports := newChain(t, 0, 1000, true)
-	runtime := testutils.NewRuntime(t, testutils.Secrets{})
+	reports := newChain(t, 0, now.Unix()-60, 1000, true) // price a minute old
+	calls := newPriceAPI(t, coinbaseBody, "")
 
-	res, err := onCronTrigger(testConfig, runtime, tick)
+	res, err := onCronTrigger(testConfig, newRuntime(t), tick)
+	require.NoError(t, err)
+	require.Equal(t, "idle", res.Status)
+	require.Empty(t, *reports)
+	require.Zero(t, *calls) // no API call either
+}
+
+func TestPendingBatchSettlesThroughHeadWithPrice(t *testing.T) {
+	reports := newChain(t, 990, now.Unix()-60, 1000, true)
+	newPriceAPI(t, coinbaseBody, "")
+
+	res, err := onCronTrigger(testConfig, newRuntime(t), tick)
+	require.NoError(t, err)
+	require.Equal(t, "settled", res.Status)
+	require.EqualValues(t, 990, res.Pending)
+	require.EqualValues(t, 1000, res.Through)
+	require.EqualValues(t, 3_158_850, res.PriceE8)
+	require.Len(t, *reports, 1)
+	require.Equal(t, wantReport(t, 1000, 3_158_850), (*reports)[0])
+}
+
+func TestStalePriceSendsPriceOnlyReport(t *testing.T) {
+	reports := newChain(t, 0, now.Unix()-301, 1000, true)
+	newPriceAPI(t, coinbaseBody, "")
+
+	res, err := onCronTrigger(testConfig, newRuntime(t), tick)
+	require.NoError(t, err)
+	require.Equal(t, "price", res.Status)
+	require.Len(t, *reports, 1)
+	require.Equal(t, wantReport(t, 0, 3_158_850), (*reports)[0])
+}
+
+func TestPriceOutageStillSettles(t *testing.T) {
+	reports := newChain(t, 990, 0, 1000, true)
+	newPriceAPI(t, "", "connection refused")
+
+	res, err := onCronTrigger(testConfig, newRuntime(t), tick)
+	require.NoError(t, err)
+	require.Equal(t, "settled", res.Status)
+	require.Zero(t, res.PriceE8)
+	require.Equal(t, wantReport(t, 1000, 0), (*reports)[0])
+}
+
+func TestPriceOutageWithNothingPendingIsIdle(t *testing.T) {
+	reports := newChain(t, 0, 0, 1000, true)
+	newPriceAPI(t, `{"data":{"amount":"not a number"}}`, "")
+
+	res, err := onCronTrigger(testConfig, newRuntime(t), tick)
 	require.NoError(t, err)
 	require.Equal(t, "idle", res.Status)
 	require.Empty(t, *reports)
 }
 
-func TestPendingBatchSettlesThroughHead(t *testing.T) {
-	reports := newChain(t, 990, 1000, true)
-	runtime := testutils.NewRuntime(t, testutils.Secrets{})
-
-	res, err := onCronTrigger(testConfig, runtime, tick)
-	require.NoError(t, err)
-	require.Equal(t, "settled", res.Status)
-	require.EqualValues(t, 990, res.Pending)
-	require.EqualValues(t, 1000, res.Through)
-	require.Len(t, *reports, 1)
-	want, _ := uint256Args.Pack(big.NewInt(1000))
-	require.Equal(t, want, (*reports)[0])
-}
-
 func TestRevertedReceiverIsAnError(t *testing.T) {
-	newChain(t, 990, 1000, false)
-	runtime := testutils.NewRuntime(t, testutils.Secrets{})
+	newChain(t, 990, 0, 1000, false)
+	newPriceAPI(t, coinbaseBody, "")
 
-	_, err := onCronTrigger(testConfig, runtime, tick)
+	_, err := onCronTrigger(testConfig, newRuntime(t), tick)
 	require.ErrorContains(t, err, "onReport reverted")
 }

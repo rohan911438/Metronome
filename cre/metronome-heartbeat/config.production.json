@@ -1,7 +1,9 @@
 {
   "schedule": "*/30 * * * * *",
   "chainName": "monad-testnet",
-  "metronomeAddress": "0x32f11865b2272B24f0F8174598EA64A82fc63761",
-  "heartbeatAddress": "0xAe2C3113aF7C897DAcc456Dc78234724179d27F4",
-  "gasLimit": 1500000
+  "metronomeAddress": "0x753CC9fb3F26d208AF354a672255B7eDe78bcF24",
+  "heartbeatAddress": "0x877aa5aBfC1250E19B00F2BB5dbc253057aC48e7",
+  "gasLimit": 1500000,
+  "priceUrl": "https://api.coinbase.com/v2/prices/MON-USD/spot",
+  "priceMaxAgeSec": 300
 }

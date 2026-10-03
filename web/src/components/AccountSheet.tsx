@@ -31,7 +31,7 @@ async function fundLocal(to: `0x${string}`) {
  * mint and its balance slot isn't discoverable, so it can't be dealt). The Perpl exchange holds millions.
  */
 const FORK_QUOTE_HOLDER: Address = "0x1964c32f0be608e7d29302aff5e61268e72080cc";
-/** Testnet AUSD, Perpl's collateral (the testnet Metronome market itself quotes in USDC). */
+/** Agora's testnet AUSD, Perpl's collateral (the testnet Metronome market quotes in our own open-mint tAUSD). */
 const FORK_AUSD: Address = "0xa9012a055bd4e0eDfF8Ce09f960291C09D5322dC";
 
 async function fundFork(to: Address) {
@@ -52,6 +52,9 @@ async function fundFork(to: Address) {
     await rpc("anvil_stopImpersonatingAccount", [FORK_QUOTE_HOLDER]);
   }
 }
+
+/** The testnet market quotes in TestAUSD, which anyone can mint (contracts/src/mocks/TestAUSD.sol). */
+const canMintQuote = chain.testnet && QUOTE.symbol === "tAUSD";
 
 export function AccountSheet({ onClose }: { onClose: () => void }) {
   const w = useWallet();
@@ -187,6 +190,37 @@ export function AccountSheet({ onClose }: { onClose: () => void }) {
                       faucet.monad.xyz
                     </a>
                     .
+                  </>
+                )}
+                {canMintQuote && (
+                  <>
+                    <button
+                      disabled={funding}
+                      onClick={async () => {
+                        setFunding(true);
+                        setFundError(undefined);
+                        try {
+                          await trader.send({
+                            address: deployment.quote,
+                            abi: mockErc20Abi,
+                            functionName: "mint",
+                            args: [trader.address, parseUnits("1000", QUOTE.decimals)],
+                          });
+                        } catch (e) {
+                          setFundError((e as Error).message.split("\n")[0]);
+                        } finally {
+                          setFunding(false);
+                        }
+                      }}
+                      className="mt-3 w-full rounded-2xl bg-accent py-3 font-medium text-accent-fg disabled:opacity-50"
+                    >
+                      {funding ? "Minting…" : `Mint 1,000 ${QUOTE.symbol} (testnet)`}
+                    </button>
+                    <p className="mt-2 text-xs">
+                      {QUOTE.symbol} is a testnet stand-in for AUSD while Agora&apos;s testnet faucet is empty. On mainnet the market quotes in
+                      real AUSD.
+                    </p>
+                    {fundError && <p className="mt-2 break-words text-xs text-sell">{fundError}</p>}
                   </>
                 )}
               </div>

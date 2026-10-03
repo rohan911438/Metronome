@@ -2,15 +2,15 @@
 
 export const deployments = {
   "10143": {
-    "address": "0x32f11865b2272B24f0F8174598EA64A82fc63761",
+    "address": "0x753CC9fb3F26d208AF354a672255B7eDe78bcF24",
     "base": "0xFb8bf4c1CC7a94c73D209a149eA2AbEa852BC541",
-    "deployBlock": 65885642,
+    "deployBlock": 67751847,
     "minOrderSize": "1000000000000000000",
     "owner": "0x0D350bc1b4102732cFe243f80fe693f428572373",
     "priceMin": "3228117476499511058185",
-    "quote": "0x534b2f3A21130d7a60830c2Df862319e593943A3",
+    "quote": "0xA89Cdf8C92eC4f84654b44c0768FEC1b594cd091",
     "quoteDecimals": 6,
-    "quoteSymbol": "USDC",
+    "quoteSymbol": "tAUSD",
     "shards": 16
   },
   "31337": {

@@ -1,22 +1,33 @@
 # metronome-heartbeat
 
-A Chainlink CRE workflow that keeps Metronome's batches clearing without our own keeper server.
+A Chainlink CRE workflow that keeps Metronome's batches clearing without our own keeper server, and brings an
+off-chain MON/USD price on-chain as the market's price feed.
 
 Every 30 seconds (cron trigger):
 
-1. **Read** `nextPendingBatch()` on the market. If it is 0 there is nothing to do, and the tick costs no gas.
-2. **Read** the latest block height `H`.
-3. **Report** `abi.encode(H)`, signed by the DON, through the Monad forwarder to
-   [`MetronomeHeartbeat`](../../contracts/src/cre/MetronomeHeartbeat.sol), which calls `settle(H)`. One report settles every
-   pending batch up to `H`, so the workflow catches up however far behind it is.
+1. **Read** `nextPendingBatch()` on the market and `priceUpdatedAt()` on the receiver. If no batch is waiting and the
+   price is under 5 minutes old, there is nothing to do, and the tick costs no gas.
+2. **Fetch** MON/USD from an external API (Coinbase spot, `priceUrl` in the config) on every node; the DON agrees on the
+   **median**. If the API is down, the report carries price 0 and settlement still goes ahead.
+3. **Read** the latest block height `H` (when a batch is waiting).
+4. **Report** `abi.encode(H, price, observedAt)`, signed by the DON, through the Monad forwarder to
+   [`MetronomeHeartbeat`](../../contracts/src/cre/MetronomeHeartbeat.sol). It stores the price first, then calls
+   `settle(H)`, which settles every pending batch up to `H`, so the workflow catches up however far behind it is.
+   With no batch waiting, `H` is 0 and the report only refreshes the price.
 
-`settle` is permissionless, so the receiver adds no new power. It only accepts reports from the forwarder, and any
-settle reward the market pays lands there for the owner to sweep.
+The receiver serves the price as a Chainlink-style `IAggregatorV3` feed (8 decimals), so `Metronome.setOracle(receiver,
+maxDeviationBps, maxStaleness)` makes the market's price guard check each clearing price against it: a batch that clears
+too far from MON/USD is voided and refunded. On mainnet (WMON/AUSD) that's the intended setup. On testnet the market
+quotes in tAUSD around an arbitrary 0.025, so the guard stays off there and the price is only recorded.
+
+`settle` is permissionless, so the receiver adds no new power. It only accepts reports from the forwarder, ignores
+prices that are older than the stored one or dated in the future, and any settle reward the market pays lands there for
+the owner to sweep.
 
 | | Monad testnet |
 |---|---|
-| Market | `0x32f11865b2272B24f0F8174598EA64A82fc63761` |
-| `MetronomeHeartbeat` | `0xAe2C3113aF7C897DAcc456Dc78234724179d27F4` |
+| Market | `0x753CC9fb3F26d208AF354a672255B7eDe78bcF24` |
+| `MetronomeHeartbeat` | `0x877aa5aBfC1250E19B00F2BB5dbc253057aC48e7` |
 | Forwarder it accepts | `0xB9F79d863261869B234c481D1f9A7af84AeAd192` (CRE mock forwarder, used by `simulate --broadcast`) |
 | Real forwarder (after deploy) | `0xF8344CFd5c43616a4366C34E3EEE75af79a74482` (switch with `setForwarder`) |
 
@@ -30,9 +41,21 @@ cre workflow simulate metronome-heartbeat --target staging-settings --non-intera
 cre workflow simulate metronome-heartbeat --target staging-settings --non-interactive --trigger-index 0 --broadcast
 ```
 
-Live run on Sep 29, 2026: the workflow found pending batch 66,620,995 and settled through 66,621,054 in
-[`0x02e34a3a…4995`](https://testnet.monadscan.com/tx/0x02e34a3a1c734793a2251446dac627fa3996002c2c2d62dcbf009dfd45d64995)
-(forwarder → `onReport` → `BatchSettled` → `Heartbeat`).
+Live runs on Oct 3, 2026 (`simulate --broadcast`, WMON/tAUSD market):
+
+- **Price only:** no batch waiting and no price stored yet, so the workflow fetched MON/USD = $0.0314765 and wrote it in
+  [`0xc610c306…f57b`](https://testnet.monadscan.com/tx/0xc610c30620f1c50803008ded82506ce5eeec1a1d72cbc713cd7dd75e696cf57b)
+  (`PriceUpdated`, round 1).
+- **Settle + price:** a sell placed in block 67,758,110; the workflow settled through 67,758,173 with MON/USD = $0.031471 in
+  [`0xab20831c…c387`](https://testnet.monadscan.com/tx/0xab20831cb1395fe34511c3a1658336871d18f1b5d97b46f789a58eefe81fc387)
+  (forwarder → `onReport` → `PriceUpdated` → `BatchSettled` → `Heartbeat`).
+
+The first version (settle only, Sep 29) settled batch 66,620,995 on the retired USDC market in
+[`0x02e34a3a…4995`](https://testnet.monadscan.com/tx/0x02e34a3a1c734793a2251446dac627fa3996002c2c2d62dcbf009dfd45d64995).
+
+**Deploying:** Chainlink grants deploy access per organization (`cre account access`). For hackathons, Chainlink deploys
+a workflow to the live CRE network for the team once its simulation succeeds, so the simulation runs above are the
+submission evidence.
 
 ## Gas
 

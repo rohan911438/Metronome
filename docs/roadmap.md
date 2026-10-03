@@ -50,7 +50,8 @@ Solo build. Design: [`architecture.md`](architecture.md). Submission target **Oc
 - [x] Local end-to-end test (Anvil) in CI: 60 random takers, 55 filled, 0 bot errors
 - [x] `MiniAMM.sol` + `SandwichLab.sol` (tests: AMM victim −4.17%, Metronome victim 0)
 - [x] Testnet market redeployed as **WMON/USDC** (Sep 26, `0x32f1…3761`; mainnet stays WMON/AUSD); keeper + MM + `pnpm taker` ran live: 3 fills between two wallets (see `docs/network.md`)
-- [ ] SandwichLab + MiniAMM on testnet (rest of M2); limited by testnet MON (4.08 left)
+- [x] Oct 3: testnet market redeployed as **WMON/tAUSD** (`0x753C…cF24`) on our open-mint `TestAUSD` (`0xA89C…d091`, ≤10M per mint; the Monad team's suggestion since Agora's faucet is empty); app has a "Mint 1,000 tAUSD" button; taker sold 1 MON into the MM's bid live
+- [ ] SandwichLab + MiniAMM on testnet (rest of M2); limited by testnet MON (~2.05 left)
 - [x] `pnpm dev:local`: long-running local stack (Anvil + deploy + keeper + MM + background traders + one lab run) for frontend work
 
 ### Phase 4 — Frontend + Mera (done Sep 26, ahead of schedule)
@@ -67,14 +68,15 @@ Solo build. Design: [`architecture.md`](architecture.md). Submission target **Oc
 ### Phase 4b — Perpl perps tab (Oct 4–7)
 - [x] Oct 4 (done Sep 26): `lib/perpl.ts` + `/perps` page: market picker (all open markets, MON first), mark/oracle price, 24h change, volume, open interest, funding, fees, candles (5m/1h/1d), live L2 book. Data comes through `app/api/perpl` (a cached pass-through for public REST paths only), because Perpl sends no CORS headers and its market-data WebSocket answers browser origins with 403. Validated in headless Edge at phone size against testnet: 11/11 checks
 - [x] Oct 5 (done Sep 26): Perpl account card on `/perps`, signed by the Mera wallet: approve exactly the deposit → `createAccount` → `allowOrderForwarding(true)`, resumable, with explicit states (not signed in / wrong network / **"100 AUSD required to activate Perpl trading on testnet"** / ready / account open). Paste-a-key fallback: key encrypted with a passkey-derived AES key before it touches localStorage; checked with a signed `GET /v1/trading/wallet`. `pnpm perpl:fork` runs the app against a local fork of testnet with a "Get test funds" button, so the real transactions run against Perpl's real contract. Validated in headless Edge: setup 17/17 (account #712 with 150 AUSD, forwarding event, zero leftover allowance), passkey key storage 10/10
-- [ ] Real testnet run of the account setup: **blocked on ≥100 testnet AUSD** (faucet empty, no DEX lists AUSD)
+- [ ] Real run of the Perpl account setup: **needs ≥100 of Agora's AUSD** (Perpl only accepts `0xa901…22dC` on testnet; our tAUSD can't be used there). Plan: do it on mainnet with real AUSD once the user funds the wallet
 - [ ] In-app API-key enrollment (`/api-key/payload` → EIP-712 wallet signature + Ed25519 proof → `/api-key/enroll`) with the passkey-derived key: **needs Perpl's origin whitelist**
 - [ ] Oct 6: trading WebSocket: signed requests, place market/limit orders, cancel; positions, open orders, P&L, collateral in AUSD; perps section in `/portfolio`
 - [ ] Oct 7: mobile polish; film on a real phone: passkey → AUSD balance → Metronome trade → Perpl trade → M3
 
 ### Phase 5 — Sponsor integrations + benchmark (Oct 8–10)
 - [x] **Oct 8 — Chainlink CRE (done Sep 29):** `cre/metronome-heartbeat` (Go): cron → `nextPendingBatch()` → signed report → forwarder → `MetronomeHeartbeat.onReport` → `settle`. Receiver live on testnet, 7 Foundry + 4 Go tests, `simulate --broadcast` settled a real pending batch on testnet
-- [ ] CRE deploy: waiting on Chainlink to enable deploy access for the account; then `cre workflow deploy` and `setForwarder` to the real forwarder
+- [x] Oct 3: CRE workflow fetches MON/USD from an external API (Coinbase, DON median) and the receiver stores it as an `IAggregatorV3` feed for the oracle guard (the bounty requires an external API); price-only and settle + price reports live on testnet
+- [ ] CRE deploy (optional: the bounty accepts simulation and Chainlink deploys simulated hackathon workflows): deploy access still "Not enabled" on Oct 3; then `cre workflow deploy` and `setForwarder` to the real forwarder
 - [x] **Envio indexer** (done Sep 26): `indexer/`, HyperIndex 3.13 in Docker (Envio has no Windows build) with Postgres + Hasura; entities `Stats`, `DailyStats`, `Batch`, `Order`, `Trader`, `Keeper`, `Pool`, `GasTx`. Runs against the local Anvil stack; totals match raw chain logs exactly. CI job `indexer.yml` (codegen + typecheck for both configs)
 - [ ] Indexer on testnet: needs an Envio API token (free, envio.dev) or Envio Cloud, and trading activity on the testnet market (M2)
 - [x] **`/stats` page** (done Sep 26): volume, batches, orders, traders, order-to-settlement delay, gas per action, keeper leaderboard, clearing-price chart, daily volume; live from the indexer, explains itself when no indexer is configured. Validated in headless Edge: 11/11

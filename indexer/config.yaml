@@ -13,7 +13,7 @@ contracts:
       - event: "SettleRewardPaid(uint256 indexed batchId, address indexed settler, uint256 amount)"
 chains:
   - id: 10143 # Monad testnet, via HyperSync (needs ENVIO_API_TOKEN outside Envio Cloud)
-    start_block: 65885642 # WMON/USDC market deploy block, contracts/deployments/10143.json
+    start_block: 67751847 # WMON/tAUSD market deploy block, contracts/deployments/10143.json
     contracts:
       - name: Metronome
-        address: "0x32f11865b2272B24f0F8174598EA64A82fc63761"
+        address: "0x753CC9fb3F26d208AF354a672255B7eDe78bcF24"

@@ -59,22 +59,24 @@ flowchart LR
 - **Only the marginal price level is partly filled**, pro-rata. Every order at a better price fills completely. Every order at a worse price is fully refunded.
 - **Nobody has to be trusted.** Anyone can call `settle`, and `claim` settles the batch itself if no one has yet.
 
-### Chainlink CRE: the exchange's heartbeat
+### Chainlink CRE: the exchange's heartbeat and price feed
 
-Batches don't depend on our server staying up. A [Chainlink CRE workflow](cre/metronome-heartbeat) settles them from Chainlink's network:
+Batches don't depend on our server staying up. A [Chainlink CRE workflow](cre/metronome-heartbeat) settles them from Chainlink's network, and brings MON/USD from an off-chain API on-chain in the same report:
 
 ```mermaid
 flowchart LR
-    T["Cron, every 30s"] --> R["Read nextPendingBatch()"]
-    R -->|none| I["Idle: no transaction, no gas"]
-    R -->|batch waiting| S["Signed report:<br/>settle through the latest block"]
+    T["Cron, every 30s"] --> R["Read nextPendingBatch()<br/>and priceUpdatedAt()"]
+    R -->|nothing waiting, price fresh| I["Idle: no transaction, no gas"]
+    R -->|batch waiting or price old| P["Every node fetches MON/USD<br/>(Coinbase API); DON takes the median"]
+    P --> S["Signed report:<br/>(latest block, price, time)"]
     S --> F["Chainlink forwarder<br/>checks the signatures"]
-    F --> H["MetronomeHeartbeat.onReport<br/>→ settle(latest block)"]
+    F --> H["MetronomeHeartbeat.onReport<br/>→ store price → settle(latest block)"]
 ```
 
 - **One report catches up on everything.** It settles every waiting batch up to the latest block, however far behind it is.
+- **The receiver is also a price feed.** `MetronomeHeartbeat` serves the DON's median price as a Chainlink-style `IAggregatorV3`, so the market's oracle guard can void any batch that clears too far from MON/USD (planned for mainnet; the testnet market quotes tAUSD at an arbitrary price, so the guard is off there). An API outage doesn't stop settlement: the report carries price 0, which the receiver ignores.
 - **It adds no new power.** `settle` is open to anyone; [`MetronomeHeartbeat`](contracts/src/cre/MetronomeHeartbeat.sol) only accepts reports from Chainlink's forwarder, and any settle reward lands there for the owner to sweep.
-- **Proven live on testnet:** the workflow found waiting batch 66,620,995 and settled it in [`0x02e3…4995`](https://testnet.monadscan.com/tx/0x02e34a3a1c734793a2251446dac627fa3996002c2c2d62dcbf009dfd45d64995) (forwarder → `onReport` → `BatchSettled` → `Heartbeat`).
+- **Proven live on testnet (Oct 3):** a price-only report wrote MON/USD $0.03148 ([`0xc610…f57b`](https://testnet.monadscan.com/tx/0xc610c30620f1c50803008ded82506ce5eeec1a1d72cbc713cd7dd75e696cf57b)), and a settle report cleared a waiting batch with a fresh price ([`0xab20…c387`](https://testnet.monadscan.com/tx/0xab20831cb1395fe34511c3a1658336871d18f1b5d97b46f789a58eefe81fc387): forwarder → `onReport` → `PriceUpdated` → `BatchSettled` → `Heartbeat`).
 - **Gas:** Monad charges for the gas *limit*, so the report's limit (1.5M) is sized to a busy batch (~882k gas to settle 200 orders at 16 shards).
 
 Full detail, including the clearing algorithm, storage layout and invariants: [`docs/architecture.md`](docs/architecture.md).
@@ -119,7 +121,7 @@ Monad executes transactions in parallel and re-runs ones that touched the same s
 A mobile-first trading app designed for people who have never used a wallet:
 
 - **Log in with Face ID.** Your wallet comes from your passkey ([Mera](https://mera.category.xyz)): no seed phrase, no popups, no custody server.
-- **One tap to trade** MON against a dollar stablecoin (AUSD on mainnet, Circle USDC on testnet). Every trade shows its batch and clearing price.
+- **One tap to trade** MON against a dollar stablecoin (AUSD on mainnet; on testnet our open-mint tAUSD, since Agora's testnet faucet is empty). Every trade shows its batch and clearing price.
 - **Filled within about a second.** Funds arrive automatically; there is no "claim" button to find.
 - **See the auction live:** supply and demand curves animate and cross every block.
 - **Sandwich lab:** run the same attack against an AMM and against Metronome, side by side, and watch the victim's loss.
@@ -139,7 +141,7 @@ One main track, plus sponsor bounties that the same product qualifies for. Detai
 | **Envio — Best Use of Envio** | Indexer behind the Stats page | Integrated (local chain); testnet needs an API token |
 | **Perpl — Best use of Perpl's API** | Perps tab: market data and account setup in-app | Partly integrated; trading waits on testnet AUSD |
 | **Agora — Best Mobile Trading App** | Mobile app: passkey login, AUSD balance, Metronome and Perpl trades | Paused until Agora replies about testnet AUSD |
-| **Chainlink — Best CRE workflow** | CRE workflow that settles batches | Built; settled a live testnet batch; deploy waits on Chainlink access |
+| **Chainlink — Best CRE workflow** | CRE workflow that settles batches and brings MON/USD from an external API on-chain | Built; settle + price reports live on testnet via `simulate --broadcast` (accepted for the bounty) |
 | **Nansen — Best use of Nansen** | MEV radar of real Monad sandwiches, attackers labeled by Nansen | Planned |
 
 ## Integrations
@@ -150,9 +152,9 @@ One main track, plus sponsor bounties that the same product qualifies for. Detai
 | **Mera** | Passkey login; one passkey derives the wallet key, the Perpl API key and a device encryption key; popup-free signing | ✅ In the app |
 | **Envio** | HyperIndex indexer ([`indexer/`](indexer/README.md)) behind the Stats page; totals checked against raw chain logs | ✅ Local chain · ⏳ testnet |
 | **Perpl** | Perps tab: live markets, candles and order book; open a Perpl account (approve, deposit, one-click trading) from the passkey wallet; paste an API key, stored encrypted with the passkey | ✅ Data + account setup · ⏳ trading |
-| **Circle USDC** | Quote asset of the testnet market (testnet AUSD can't be obtained) | ✅ Testnet |
+| **TestAUSD (tAUSD)** | Quote asset of the testnet market: our 6-decimal AUSD stand-in that anyone can mint (Agora's testnet AUSD can't be obtained); "Mint 1,000 tAUSD" button in the app | ✅ Testnet |
 | **AUSD** ([Agora](https://www.agora.finance)) | Quote asset of the mainnet market and Perpl collateral | ⏳ Mainnet |
-| **Chainlink** | CRE workflow as the exchange's heartbeat: [`cre/metronome-heartbeat`](cre/metronome-heartbeat) settles every pending batch through a [receiver contract](contracts/src/cre/MetronomeHeartbeat.sol) | ✅ Settled a live testnet batch via `simulate --broadcast`; deploy waits on Chainlink access |
+| **Chainlink** | CRE workflow as the exchange's heartbeat: [`cre/metronome-heartbeat`](cre/metronome-heartbeat) settles every pending batch and stores a DON-median MON/USD price through a [receiver contract](contracts/src/cre/MetronomeHeartbeat.sol) that doubles as a price feed | ✅ Settle + price reports live on testnet via `simulate --broadcast` |
 | **Nansen** | MEV radar: finds real sandwich attacks on Monad AMMs and labels the attackers | ⏳ Planned |
 
 ## Where it goes next
@@ -182,19 +184,20 @@ Metronome is meant to be **infrastructure**, not a single app:
 | End-to-end trade on a phone | Oct 7 | ⏳ |
 | Envio indexer + Stats page | Oct 9 | ✅ |
 | Shard benchmark K=1/4/16 ([results](docs/benchmark.md)) | Oct 10 | ✅ |
-| Chainlink CRE workflow: built, 11 tests, settled a live testnet batch ([details](#chainlink-cre-the-exchanges-heartbeat)) | Oct 8 | ✅ |
-| CRE workflow deployed on Chainlink's network | Oct 10 | ⏳ waiting on Chainlink deploy access |
+| Chainlink CRE workflow: built, 17 tests, settles batches and brings MON/USD on-chain, live on testnet ([details](#chainlink-cre-the-exchanges-heartbeat-and-price-feed)) | Oct 8 | ✅ |
+| CRE workflow deployed on Chainlink's network | Oct 10 | ⏳ optional: Chainlink deploys simulated hackathon workflows; our deploy access is pending |
 | Nansen MEV radar | Oct 10 | ⏳ |
 | Monad mainnet | Oct 11 | ⏳ |
 
-**Tests:** 98 Foundry tests (unit, differential fuzz, invariants, gas and shard benchmarks) and 4 Go workflow tests, all run in CI.
+**Tests:** 104 Foundry tests (unit, differential fuzz, invariants, gas and shard benchmarks) and 7 Go workflow tests, all run in CI.
 
 **Monad testnet contracts**
 
 | Contract | Address |
 |---|---|
-| Metronome (WMON/USDC market) | [`0x32f11865b2272B24f0F8174598EA64A82fc63761`](https://testnet.monadscan.com/address/0x32f11865b2272B24f0F8174598EA64A82fc63761) |
-| MetronomeHeartbeat (CRE receiver) | [`0xAe2C3113aF7C897DAcc456Dc78234724179d27F4`](https://testnet.monadscan.com/address/0xAe2C3113aF7C897DAcc456Dc78234724179d27F4) |
+| Metronome (WMON/tAUSD market) | [`0x753CC9fb3F26d208AF354a672255B7eDe78bcF24`](https://testnet.monadscan.com/address/0x753CC9fb3F26d208AF354a672255B7eDe78bcF24) |
+| TestAUSD (tAUSD, open mint) | [`0xA89Cdf8C92eC4f84654b44c0768FEC1b594cd091`](https://testnet.monadscan.com/address/0xA89Cdf8C92eC4f84654b44c0768FEC1b594cd091) |
+| MetronomeHeartbeat (CRE receiver) | [`0x877aa5aBfC1250E19B00F2BB5dbc253057aC48e7`](https://testnet.monadscan.com/address/0x877aa5aBfC1250E19B00F2BB5dbc253057aC48e7) |
 
 Every verified address (tokens, oracles, CRE forwarders) is in [`docs/network.md`](docs/network.md). The demo video will be added here. Full plan: [`docs/roadmap.md`](docs/roadmap.md).
 
@@ -210,7 +213,7 @@ contracts/          Foundry: Metronome.sol, CRE receiver, libraries, tests, gas 
 bots/               keeper, market maker, taker, local end-to-end test, local stack, testnet fork
 indexer/            Envio HyperIndex indexer (runs in Docker)
 web/                Next.js mobile PWA: trade, perps, portfolio, stats, sandwich lab
-cre/                Chainlink CRE workflow (Go): metronome-heartbeat settles pending batches
+cre/                Chainlink CRE workflow (Go): metronome-heartbeat settles batches and posts MON/USD
 ideas/              original pitch
 tracks/             hackathon track and bounty notes
 ```
