@@ -25,7 +25,8 @@ var testConfig = &Config{
 	ChainName:        "monad-testnet",
 	MetronomeAddress: "0x99E4DBCF8edE8092Be972307eB3d0Cd91ecBa889",
 	HeartbeatAddress: "0x99758F4e8Ce8E9A5364d1a6aBc2a7cF40ac9874f",
-	GasLimit:         3_000_000,
+	GasLimit:         4_000_000,
+	GasOverhead:      250_000,
 	PriceURL:         "https://api.coinbase.com/v2/prices/MON-USD/spot",
 	PriceMaxAgeSec:   300,
 }
@@ -38,7 +39,14 @@ var (
 // newChain mocks Monad testnet: nextPendingBatch() returns pending, priceUpdatedAt() returns updatedAt, the latest
 // block is head, and every report written is recorded. onReportOK decides whether onReport succeeds; a successful
 // report settles the pending batch unless silentFailure is set (the forwarder swallowed an out-of-gas receiver).
-var silentFailure bool
+var (
+	silentFailure bool
+	testForwarder        = common.HexToAddress("0xB9F79d863261869B234c481D1f9A7af84AeAd192")
+	estimateGas   uint64 = 100_000
+	estimateErr   error
+	estimates     [][]byte // report payloads seen by EstimateGas
+	gasLimits     []uint64 // gas limits of written reports
+)
 
 func newChain(t *testing.T, pending, updatedAt, head int64, onReportOK bool) *[][]byte {
 	selector, err := evm.ChainSelectorFromName(testConfig.ChainName)
@@ -47,6 +55,7 @@ func newChain(t *testing.T, pending, updatedAt, head int64, onReportOK bool) *[]
 	require.NoError(t, err)
 
 	settled := false
+	estimates, gasLimits = nil, nil
 	chain.CallContract = func(_ context.Context, in *evm.CallContractRequest) (*evm.CallContractReply, error) {
 		var v int64
 		switch {
@@ -59,6 +68,11 @@ func newChain(t *testing.T, pending, updatedAt, head int64, onReportOK bool) *[]
 		case common.BytesToAddress(in.Call.To) == common.HexToAddress(testConfig.HeartbeatAddress) &&
 			common.Bytes2Hex(in.Call.Data) == common.Bytes2Hex(priceUpdatedAtSelector):
 			v = updatedAt
+		case common.BytesToAddress(in.Call.To) == common.HexToAddress(testConfig.HeartbeatAddress) &&
+			common.Bytes2Hex(in.Call.Data) == common.Bytes2Hex(forwarderSelector):
+			out, err := addressArgs.Pack(testForwarder)
+			require.NoError(t, err)
+			return &evm.CallContractReply{Data: out}, nil
 		default:
 			t.Fatalf("unexpected call to %x: %x", in.Call.To, in.Call.Data)
 		}
@@ -69,10 +83,24 @@ func newChain(t *testing.T, pending, updatedAt, head int64, onReportOK bool) *[]
 	chain.HeaderByNumber = func(_ context.Context, _ *evm.HeaderByNumberRequest) (*evm.HeaderByNumberReply, error) {
 		return &evm.HeaderByNumberReply{Header: &evm.Header{BlockNumber: pb.NewBigIntFromInt(big.NewInt(head))}}, nil
 	}
+	chain.EstimateGas = func(_ context.Context, in *evm.EstimateGasRequest) (*evm.EstimateGasReply, error) {
+		// Estimated as the forwarder, against the receiver, with onReport("", payload).
+		require.Equal(t, testForwarder.Bytes(), in.Msg.From)
+		require.Equal(t, common.HexToAddress(testConfig.HeartbeatAddress).Bytes(), in.Msg.To)
+		require.Equal(t, common.Bytes2Hex(onReportSelector), common.Bytes2Hex(in.Msg.Data[:4]))
+		args, err := bytesPair.Unpack(in.Msg.Data[4:])
+		require.NoError(t, err)
+		require.Empty(t, args[0])
+		estimates = append(estimates, args[1].([]byte))
+		if estimateErr != nil {
+			return nil, estimateErr
+		}
+		return &evm.EstimateGasReply{Gas: estimateGas}, nil
+	}
 	var reports [][]byte
 	chain.WriteReport = func(_ context.Context, in *evm.WriteReportRequest) (*evm.WriteReportReply, error) {
 		require.Equal(t, common.HexToAddress(testConfig.HeartbeatAddress).Bytes(), in.Receiver)
-		require.Equal(t, testConfig.GasLimit, in.GasConfig.GasLimit)
+		gasLimits = append(gasLimits, in.GasConfig.GasLimit)
 		reports = append(reports, in.Report.RawReport[cre.ReportMetadataHeaderLength:])
 		settled = onReportOK && !silentFailure
 		status := evm.ReceiverContractExecutionStatus_RECEIVER_CONTRACT_EXECUTION_STATUS_SUCCESS
@@ -200,4 +228,36 @@ func TestSilentReceiverFailureIsAnError(t *testing.T) {
 
 	_, err := onCronTrigger(testConfig, newRuntime(t), tick)
 	require.ErrorContains(t, err, "still pending after report")
+}
+
+func TestGasLimitIsSizedFromTheEstimate(t *testing.T) {
+	reports := newChain(t, 990, 0, 1000, true)
+	newPriceAPI(t, coinbaseBody, "")
+
+	_, err := onCronTrigger(testConfig, newRuntime(t), tick)
+	require.NoError(t, err)
+	require.Equal(t, []uint64{2*100_000 + 250_000}, gasLimits)
+	require.Equal(t, (*reports)[0], estimates[0]) // the estimate ran on exactly the payload that was reported
+}
+
+func TestGasLimitIsCapped(t *testing.T) {
+	estimateGas = 3_000_000
+	defer func() { estimateGas = 100_000 }()
+	newChain(t, 990, 0, 1000, true)
+	newPriceAPI(t, coinbaseBody, "")
+
+	_, err := onCronTrigger(testConfig, newRuntime(t), tick)
+	require.NoError(t, err)
+	require.Equal(t, []uint64{testConfig.GasLimit}, gasLimits)
+}
+
+func TestRevertingEstimateWritesNothing(t *testing.T) {
+	estimateErr = errors.New("execution reverted")
+	defer func() { estimateErr = nil }()
+	reports := newChain(t, 990, 0, 1000, true)
+	newPriceAPI(t, coinbaseBody, "")
+
+	_, err := onCronTrigger(testConfig, newRuntime(t), tick)
+	require.ErrorContains(t, err, "estimate onReport")
+	require.Empty(t, *reports)
 }

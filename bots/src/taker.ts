@@ -1,15 +1,19 @@
 /**
  * `pnpm taker [count] [sizeMON]`: sends a few real taker orders against the resting book, alternating buy and sell,
- * and waits for each to be settled and claimed by the keeper. For showing a live market on testnet.
+ * waits for each to be settled (by the keeper bot or the Chainlink CRE workflow), then claims it if nobody has, so the
+ * proceeds are back in the wallet for the next order. For showing a live market on testnet.
  *
  * Uses TAKER_PRIVATE_KEY (bots/.env) and never falls back to the deployer, so fills are between two different
  * wallets. Buys cross at the best resting ask and sells at the best resting bid.
  */
-import { erc20Abi, maxUint256, type Hex } from "viem";
+import { erc20Abi, formatEther, maxUint256, parseEther, parseEventLogs, type Hex } from "viem";
 import { metronomeAbi } from "./abi.js";
 import { sleep } from "./anvil.js";
 import { isMain, log, send } from "./chain.js";
 import { createCtx, walletFor } from "./config.js";
+
+/** MON kept for gas: a sell only wraps MON beyond this. */
+const GAS_RESERVE = parseEther(process.env.TAKER_GAS_RESERVE ?? "0.15");
 
 const wmonAbi = [{ type: "function", name: "deposit", stateMutability: "payable", inputs: [], outputs: [] }] as const;
 
@@ -44,6 +48,12 @@ async function main() {
     if (!isBuy) {
       const wmon = await ctx.public.readContract({ address: d.base, abi: erc20Abi, functionName: "balanceOf", args: [me] });
       if (wmon < size) {
+        // Wrap only the shortfall, and only from MON above the gas reserve.
+        const mon = await ctx.public.getBalance({ address: me });
+        if (mon < size - wmon + GAS_RESERVE) {
+          log("taker", `sell skipped: needs ${formatEther(size - wmon)} more WMON, and ${me} has ${formatEther(mon)} MON (keeps ${formatEther(GAS_RESERVE)} for gas)`);
+          continue;
+        }
         const hash = await w.writeContract({ address: d.base, abi: wmonAbi, functionName: "deposit", value: size - wmon });
         const r = await ctx.public.waitForTransactionReceipt({ hash });
         if (r.status !== "success") throw new Error(`wrapping MON failed (${hash}); does ${me} hold enough MON?`);
@@ -53,14 +63,27 @@ async function main() {
     const r = await send(ctx, w, { address: d.address, abi: metronomeAbi, functionName: "placeOrder", args: [isBuy, tick, size, false] });
     log("taker", `${isBuy ? "buy" : "sell"} ${Number(size) / 1e18} MON at tick ${tick}: ${r.transactionHash} (block ${r.blockNumber})`);
 
-    // Wait for the keeper to settle the batch and claim the order.
-    for (let t = 0; t < 150; t++) {
+    // Wait for the batch to settle (keeper bot or CRE workflow), then make sure the order is claimed: the keeper bot
+    // claims takers, the CRE workflow only settles.
+    const [placed] = parseEventLogs({ abi: metronomeAbi, eventName: "OrderPlaced", logs: r.logs });
+    let settled = false;
+    for (let t = 0; t < 150 && !settled; t++) {
       const res = await ctx.public.readContract({ address: d.address, abi: metronomeAbi, functionName: "getBatchResult", args: [r.blockNumber] });
       if (res.settled) {
+        settled = true;
         log("taker", `  settled: clearing tick ${res.clearingTick}, batch volume ${Number(res.volume) / 1e18} MON`);
-        break;
+      } else await sleep(ctx.pollMs);
+    }
+    if (!settled) {
+      log("taker", "  not settled after 60 s: is a keeper (bot or CRE workflow) running?");
+      continue;
+    }
+    if (placed) {
+      const o = await ctx.public.readContract({ address: d.address, abi: metronomeAbi, functionName: "getOrder", args: [placed.args.orderId] });
+      if (!o.closed) {
+        const c = await send(ctx, w, { address: d.address, abi: metronomeAbi, functionName: "claim", args: [placed.args.orderId] });
+        log("taker", `  claimed: ${c.transactionHash}`);
       }
-      await sleep(ctx.pollMs);
     }
   }
 }

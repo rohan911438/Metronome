@@ -3,7 +3,8 @@
   "chainName": "monad-testnet",
   "metronomeAddress": "0x99E4DBCF8edE8092Be972307eB3d0Cd91ecBa889",
   "heartbeatAddress": "0x99758F4e8Ce8E9A5364d1a6aBc2a7cF40ac9874f",
-  "gasLimit": 3000000,
+  "gasLimit": 4000000,
+  "gasOverhead": 250000,
   "priceUrl": "https://api.coinbase.com/v2/prices/MON-USD/spot",
   "priceMaxAgeSec": 300
 }

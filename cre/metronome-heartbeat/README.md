@@ -53,6 +53,8 @@ Live runs on Oct 3, 2026 (`simulate --broadcast`, on the WMON/tAUSD market and r
 
 **Oct 3, CRE as the only keeper** (no keeper bot running; WMON/AUSD market, receiver `0x9975…874f`): the market maker quoted around the CRE price (bids ticks 2269/2271, asks 2275/2277 ≈ $0.0312); a taker [bought 1 MON](https://testnet.monadscan.com/tx/0x3030ca6c2530804178789de40a943ee7212a3db59caed31de177ff62c4a69fec) at tick 2275 and the next workflow run [settled that batch with MON/USD $0.03129](https://testnet.monadscan.com/tx/0x23421b9b8c6eb4098da8df6e313b5535facbda8d8be293f9f8862b08f8c7b7f0) within 4 seconds. Earlier in the run, reports at a 1.5M gas limit ran out of gas on a batch where 4 resting orders joined fresh pools (~1.02M gas through the receiver); the forwarder swallowed it and the simulator reported success. Fixed: 3M limit ([settled](https://testnet.monadscan.com/tx/0x4d30147547c22f4635fb399700b3dbcb957f586dc174d39fcf0fd412e1690798)) and a post-report check in the workflow. Cost: each report is billed at its full limit (0.15–0.31 MON at 102 gwei), so CRE runs are for demos until the deployed workflow runs on Chainlink's network.
 
+**Oct 3, after the gas fix:** a taker [bought](https://testnet.monadscan.com/tx/0xa75315ec6965c572086eb642b02ffababb3fc1e2dd81840254b6ccf6e02629b5) and [sold](https://testnet.monadscan.com/tx/0x279a4a965be3a504ce97ea6acf8b5ec64f8ed1e558777e2e59d911207729c356) 1 MON; the workflow settled each batch ([buy](https://testnet.monadscan.com/tx/0x08818317cda937c6343664e2017e194148a13879310a70cf79df4285051859d0): estimate 771k → limit 1.79M; [sell](https://testnet.monadscan.com/tx/0x151358e06c216b7e772f51731e6360547ff2761f0a74fcb425cbb40ff82bb8d1): 784k → 1.82M), and the taker claimed both fills itself. A price-only report: estimate 37k → limit 324k ([tx](https://testnet.monadscan.com/tx/0x991a28ebd24e3de04b7e9062730649ddedd32c4dec8ba5b0fd21a42531d703e7)).
+
 The first version (settle only, Sep 29) settled batch 66,620,995 on the retired USDC market in
 [`0x02e34a3a…4995`](https://testnet.monadscan.com/tx/0x02e34a3a1c734793a2251446dac627fa3996002c2c2d62dcbf009dfd45d64995).
 
@@ -62,12 +64,16 @@ submission evidence.
 
 ## Gas
 
-Monad charges for the gas **limit**, not the gas used, so `gasLimit` is sized to a busy batch, and it is **3M**. 1.5M was
-too little on Oct 3: a batch where four resting orders join fresh pools costs ~1.02M gas through the receiver on Monad
-(cold storage writes cost more there than in the Anvil benchmark, where 200 orders at 16 shards took ~882k), and the
-forwarder's own overhead comes out of the same limit. The forwarder swallows a receiver that runs out of gas and a
-simulated write doesn't report the receiver's status, so the workflow re-reads `nextPendingBatch()` after each settle report
-and fails loudly if the batch is still pending. At testnet's 102 gwei a report costs ~0.31 MON.
+Monad charges for the gas **limit**, not the gas used, so each report's limit is sized from an estimate: the workflow
+reads the receiver's `forwarder()` and estimates `onReport("", report)` as that address (the only caller the receiver
+accepts), then uses **estimate × 2 + `gasOverhead` (250k)**, capped at `gasLimit` (4M). An estimate that reverts stops the
+run before anything is written.
+
+Why: a flat 1.5M limit ran out on Oct 3 on a batch where four resting orders joined fresh pools (receiver estimate ~1.02M;
+the on-chain cost was higher than the estimate), and a flat 3M worked but bills ~0.31 MON per report at 102 gwei. With
+the estimate: a price-only report gets ~324k (~0.03 MON), settling a taker fill against the pools ~1.8M. The forwarder
+swallows a receiver that runs out of gas and a simulated write doesn't report the receiver's status, so the workflow
+also re-reads `nextPendingBatch()` after each settle report and fails loudly if the batch is still pending.
 
 ## Deploy
 
