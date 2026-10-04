@@ -1,9 +1,9 @@
 {
   "heartbeat": {
-    "address": "0x99758F4e8Ce8E9A5364d1a6aBc2a7cF40ac9874f",
-    "deployBlock": 67767443,
+    "address": "0xBF310973D31a3766A1c943003f826a56F1986819",
+    "deployBlock": 68047253,
     "forwarder": "0xB9F79d863261869B234c481D1f9A7af84AeAd192",
-    "metronome": "0x99E4DBCF8edE8092Be972307eB3d0Cd91ecBa889",
+    "metronome": "0x44F6cF1A3c61AfCeAfF5017CA054b5754C2110E5",
     "owner": "0x0D350bc1b4102732cFe243f80fe693f428572373"
   },
   "lab": {
@@ -16,16 +16,16 @@
     "sandwichLab": "0xc2E9492f6b45c9e709e2e4a43FBfD505Bf71f01b"
   },
   "metronome": {
-    "address": "0x99E4DBCF8edE8092Be972307eB3d0Cd91ecBa889",
+    "address": "0x44F6cF1A3c61AfCeAfF5017CA054b5754C2110E5",
     "base": "0xFb8bf4c1CC7a94c73D209a149eA2AbEa852BC541",
-    "deployBlock": 65622114,
+    "deployBlock": 68047152,
     "minOrderSize": 1000000000000000000,
     "owner": "0x0D350bc1b4102732cFe243f80fe693f428572373",
     "priceMin": "3228117476499511058185",
     "quote": "0xa9012a055bd4e0eDfF8Ce09f960291C09D5322dC",
     "quoteDecimals": 6,
     "quoteSymbol": "AUSD",
-    "shards": 16
+    "shards": 4
   },
   "testAusd": {
     "address": "0xA89Cdf8C92eC4f84654b44c0768FEC1b594cd091",

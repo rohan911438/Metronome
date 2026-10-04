@@ -15,13 +15,20 @@ services:
       POSTGRES_PASSWORD: ${ENVIO_PG_PASSWORD:-testing}
       POSTGRES_USER: ${ENVIO_PG_USER:-postgres}
       POSTGRES_DB: ${ENVIO_PG_DATABASE:-envio-dev}
+    # Hasura waits for this; started together, it otherwise fails its health check on a fresh volume.
+    healthcheck:
+      test: pg_isready -U ${ENVIO_PG_USER:-postgres} -d ${ENVIO_PG_DATABASE:-envio-dev}
+      interval: 2s
+      timeout: 2s
+      retries: 60
   graphql-engine:
     image: hasura/graphql-engine:v2.43.0
     ports:
       - "127.0.0.1:${HASURA_EXTERNAL_PORT:-8080}:8080"
     user: 1001:1001
     depends_on:
-      - envio-postgres
+      envio-postgres:
+        condition: service_healthy
     restart: unless-stopped
     environment:
       HASURA_GRAPHQL_DATABASE_URL: postgres://${ENVIO_PG_USER:-postgres}:${ENVIO_PG_PASSWORD:-testing}@envio-postgres:5432/${ENVIO_PG_DATABASE:-envio-dev}

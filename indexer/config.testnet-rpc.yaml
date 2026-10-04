@@ -14,7 +14,7 @@ contracts:
       - event: "SettleRewardPaid(uint256 indexed batchId, address indexed settler, uint256 amount)"
 chains:
   - id: 10143
-    start_block: 65622114 # WMON/AUSD market deploy block, contracts/deployments/10143.json
+    start_block: 65622114 # first WMON/AUSD market (v2) deploy block
     rpc:
       # thirdweb's public endpoint answers 1,000 blocks per eth_getLogs, 10x the official RPC; that one is the fallback.
       - url: https://10143.rpc.thirdweb.com
@@ -27,4 +27,6 @@ chains:
         interval_ceiling: 100
     contracts:
       - name: Metronome
-        address: "0x99E4DBCF8edE8092Be972307eB3d0Cd91ecBa889"
+        address:
+          - "0x44F6cF1A3c61AfCeAfF5017CA054b5754C2110E5" # WMON/AUSD with the price band (Oct 4), current
+          - "0x99E4DBCF8edE8092Be972307eB3d0Cd91ecBa889" # WMON/AUSD v2 (Sep 25 - Oct 4), same pair and events

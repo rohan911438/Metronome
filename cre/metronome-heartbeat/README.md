@@ -27,8 +27,8 @@ the owner to sweep.
 
 | | Monad testnet |
 |---|---|
-| Market | `0x99E4DBCF8edE8092Be972307eB3d0Cd91ecBa889` |
-| `MetronomeHeartbeat` | `0x99758F4e8Ce8E9A5364d1a6aBc2a7cF40ac9874f` |
+| Market | `0x44F6cF1A3c61AfCeAfF5017CA054b5754C2110E5` (v3, with the price band; Oct 3 runs below were on v2 `0x99E4…a889`) |
+| `MetronomeHeartbeat` | `0xBF310973D31a3766A1c943003f826a56F1986819` (Oct 4; v2 receiver `0x9975…874f`) |
 | Forwarder it accepts | `0xB9F79d863261869B234c481D1f9A7af84AeAd192` (CRE mock forwarder, used by `simulate --broadcast`) |
 | Real forwarder (after deploy) | `0xF8344CFd5c43616a4366C34E3EEE75af79a74482` (switch with `setForwarder`) |
 

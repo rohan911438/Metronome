@@ -176,7 +176,7 @@ Metronome is meant to be **infrastructure**, not a single app:
 | Architecture and roadmap | Sep 25 | ✅ |
 | Core contract with differential fuzz + invariant tests | Oct 1 | ✅ |
 | Resting (maker) orders: post once, fill across batches | — | ✅ |
-| Deployed on Monad testnet: WMON/AUSD market [`0x99E4…a889`](https://testnet.monadscan.com/address/0x99E4DBCF8edE8092Be972307eB3d0Cd91ecBa889) (back on Agora's AUSD since its faucet was refilled on Oct 3) | Oct 1 | ✅ |
+| Deployed on Monad testnet: WMON/AUSD market [`0x44F6…10E5`](https://testnet.monadscan.com/address/0x44F6cF1A3c61AfCeAfF5017CA054b5754C2110E5) (redeployed Oct 4 with the price band from the security review; earlier markets in [`docs/network.md`](docs/network.md)) | Oct 1 | ✅ |
 | Keeper + market-maker bots; end-to-end test on a local chain (sandwich: AMM victim −527 bps, Metronome 0) | Oct 3 | ✅ |
 | Bots live on testnet: keeper + market maker, 3 taker fills between two wallets, each settled within 1–2 blocks | Oct 3 | ✅ |
 | Mobile web app (Next.js PWA): trade, portfolio, batch explorer, sandwich lab | Oct 3 | ✅ |
@@ -200,8 +200,8 @@ Metronome is meant to be **infrastructure**, not a single app:
 
 | Contract | Address |
 |---|---|
-| Metronome (WMON/AUSD market) | [`0x99E4DBCF8edE8092Be972307eB3d0Cd91ecBa889`](https://testnet.monadscan.com/address/0x99E4DBCF8edE8092Be972307eB3d0Cd91ecBa889) |
-| MetronomeHeartbeat (CRE receiver, MON/USD feed) | [`0x99758F4e8Ce8E9A5364d1a6aBc2a7cF40ac9874f`](https://testnet.monadscan.com/address/0x99758F4e8Ce8E9A5364d1a6aBc2a7cF40ac9874f) |
+| Metronome (WMON/AUSD market, with the price band) | [`0x44F6cF1A3c61AfCeAfF5017CA054b5754C2110E5`](https://testnet.monadscan.com/address/0x44F6cF1A3c61AfCeAfF5017CA054b5754C2110E5) |
+| MetronomeHeartbeat (CRE receiver, MON/USD feed) | [`0xBF310973D31a3766A1c943003f826a56F1986819`](https://testnet.monadscan.com/address/0xBF310973D31a3766A1c943003f826a56F1986819) |
 | SandwichLab (with MiniAMM and a tWMON/tAUSD lab market) | [`0xc2E9492f6b45c9e709e2e4a43FBfD505Bf71f01b`](https://testnet.monadscan.com/address/0xc2E9492f6b45c9e709e2e4a43FBfD505Bf71f01b) |
 
 Every verified address (tokens, oracles, CRE forwarders) is in [`docs/network.md`](docs/network.md). The demo video will be added here. Full plan: [`docs/roadmap.md`](docs/roadmap.md).
