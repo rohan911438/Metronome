@@ -1,6 +1,6 @@
 import { createPublicClient, defineChain, http, type Address, type Chain } from "viem";
 import { anvil, monad, monadTestnet } from "viem/chains";
-import { deployments } from "@/generated/deployments";
+import { deployments, labs } from "@/generated/deployments";
 
 export type Network = "local" | "testnet" | "mainnet";
 
@@ -58,6 +58,28 @@ function load(): Deployment {
 }
 
 export const deployment = load();
+
+/** The sandwich lab: its own market on open-mint test tokens on testnet, or next to the main market locally. */
+export interface Lab {
+  metronome: Address;
+  base: Address;
+  quote: Address;
+  miniAmm: Address;
+  sandwichLab: Address;
+  deployBlock: bigint;
+  /** Test tokens anyone can mint (the lab moves ~200k MON, more than testnet faucets give). */
+  mintable: boolean;
+}
+
+function loadLab(): Lab | undefined {
+  const raw = (labs as Record<string, (typeof labs)[keyof typeof labs]>)[String(chain.id)];
+  if (raw) return { ...raw, deployBlock: BigInt(raw.deployBlock) };
+  if (!deployment.miniAmm || !deployment.sandwichLab) return undefined;
+  const { address, base, quote, miniAmm, sandwichLab, deployBlock } = deployment;
+  return { metronome: address, base, quote, miniAmm, sandwichLab, deployBlock, mintable: false };
+}
+
+export const lab = loadLab();
 
 /**
  * Token metadata. The quote asset is AUSD on mainnet, Agora's testnet AUSD on testnet (from Agora's faucet), and a

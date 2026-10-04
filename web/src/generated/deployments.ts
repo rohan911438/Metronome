@@ -26,3 +26,15 @@ export const deployments = {
     "shards": 4
   }
 } as const;
+
+export const labs = {
+  "10143": {
+    "base": "0x416fD0EbF295cb32DD0dc1C01e2886b78633A516",
+    "deployBlock": 68025858,
+    "metronome": "0x35B56fAA9B0Ad45Dd53f761B1AFcF3f5474C2cbF",
+    "miniAmm": "0xB8A7405cb09D7AD03f3cD78360d9Fd036eD907A8",
+    "mintable": true,
+    "quote": "0xA89Cdf8C92eC4f84654b44c0768FEC1b594cd091",
+    "sandwichLab": "0xc2E9492f6b45c9e709e2e4a43FBfD505Bf71f01b"
+  }
+} as const;

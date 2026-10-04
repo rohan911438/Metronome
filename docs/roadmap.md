@@ -52,7 +52,7 @@ Solo build. Design: [`architecture.md`](architecture.md). Submission target **Oc
 - [x] Testnet market redeployed as **WMON/USDC** (Sep 26, `0x32f1…3761`; mainnet stays WMON/AUSD); keeper + MM + `pnpm taker` ran live: 3 fills between two wallets (see `docs/network.md`)
 - [x] Oct 3: testnet market redeployed as **WMON/tAUSD** (`0x753C…cF24`) on our open-mint `TestAUSD` (`0xA89C…d091`, ≤10M per mint; the Monad team's suggestion since Agora's faucet is empty); app has a "Mint 1,000 tAUSD" button; taker sold 1 MON into the MM's bid live
 - [x] Oct 3 (later): Agora's AUSD faucet is refilled (10k AUSD per request, one a minute). Testnet market back on the original **WMON/AUSD** v2 (`0x99E4…a889`, same code); app button "Get 10,000 AUSD" calls the faucet; tAUSD retired. The market maker centers on the CRE MON/USD price when it's fresh
-- [ ] SandwichLab + MiniAMM on testnet (rest of M2); limited by testnet MON (~2.05 left)
+- [x] Oct 4: SandwichLab + MiniAMM on testnet (rest of M2) on their own tWMON/tAUSD lab market (a run moves 200k MON): live run −5.27% for the AMM victim vs 0% on Metronome; `/lab` mints test tokens and runs it from the passkey wallet (fork-tested in headless Edge)
 - [x] `pnpm dev:local`: long-running local stack (Anvil + deploy + keeper + MM + background traders + one lab run) for frontend work
 
 ### Phase 4 — Frontend + Mera (done Sep 26, ahead of schedule)
