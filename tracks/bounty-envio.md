@@ -32,3 +32,9 @@ The app keeps working without the indexer: every page falls back to plain RPC re
 ## How we plan to win
 - An indexer that is actually used by the product (stats, history, charts), not a demo query
 - Show the GraphQL endpoint and a query in the README
+
+## Status (Oct 4): live on testnet
+- `indexer/config.testnet-rpc.yaml` indexes the testnet market with no HyperSync token: thirdweb's public RPC (1,000 blocks per `eth_getLogs`) for sync, the official RPC (100 blocks) as fallback. Full sync from the market's deploy block (2.4M blocks) took well under an hour.
+- Checked: 12 orders indexed = 12 on-chain nonces (deployer 9, taker 3). `/stats` renders volume, clearing prices, gas per action and keepers from it.
+- The portfolio now reads order times, tx links and payouts from the indexer, falling back to RPC.
+- Fix found on the way: the slim Node image has no CA certificates, so Envio's native HTTP client failed TLS; the Dockerfile installs `ca-certificates`.

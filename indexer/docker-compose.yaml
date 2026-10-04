@@ -1,6 +1,7 @@
 # Metronome indexer: Postgres + Hasura (GraphQL at http://localhost:8080/v1/graphql) + the Envio indexer.
 #   Local Anvil stack (pnpm dev:local running):  docker compose up --build
-#   Monad testnet:  ENVIO_CONFIG=config.yaml ENVIO_API_TOKEN=... docker compose up --build
+#   Monad testnet:  ENVIO_CONFIG=config.testnet-rpc.yaml docker compose up --build   (public RPCs, no token)
+#                   ENVIO_CONFIG=config.yaml ENVIO_API_TOKEN=... docker compose up --build   (HyperSync)
 # Based on github.com/enviodev/local-docker-example.
 services:
   envio-postgres:

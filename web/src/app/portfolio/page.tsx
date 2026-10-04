@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { PerpsPortfolio } from "@/components/PerpsPortfolio";
 import { metronomeAbi } from "@/lib/abi";
-import { BASE, QUOTE, deployment } from "@/lib/config";
+import { BASE, QUOTE, deployment, explorerTx } from "@/lib/config";
 import { useBalances, usePortfolio, type PortfolioOrder } from "@/lib/hooks";
 import { fmtBase, fmtPrice, fmtQuote, tickToPrice } from "@/lib/price";
 import { useWallet } from "@/lib/wallet";
@@ -19,6 +19,15 @@ function status(o: PortfolioOrder): { text: string; tone: "muted" | "buy" | "war
   }
   if (o.closed) return { text: "Filled", tone: "buy" };
   return { text: "Resting", tone: "warn" };
+}
+
+/** "just now", "5 min ago", "3 h ago", "2 d ago". */
+function ago(unixSec: number): string {
+  const s = Math.max(0, Date.now() / 1000 - unixSec);
+  if (s < 60) return "just now";
+  if (s < 3600) return `${Math.floor(s / 60)} min ago`;
+  if (s < 86_400) return `${Math.floor(s / 3600)} h ago`;
+  return `${Math.floor(s / 86_400)} d ago`;
 }
 
 export default function PortfolioPage() {
@@ -92,6 +101,14 @@ export default function PortfolioPage() {
                     <Link href={`/batch/${o.batchId}`} prefetch={false} className="text-accent">
                       batch #{o.batchId.toString()}
                     </Link>
+                    {o.placedAt !== undefined &&
+                      (o.placedTx && explorerTx(o.placedTx) ? (
+                        <a href={explorerTx(o.placedTx)} target="_blank" rel="noreferrer" className="text-accent">
+                          {ago(o.placedAt)}
+                        </a>
+                      ) : (
+                        <span>{ago(o.placedAt)}</span>
+                      ))}
                   </div>
                   {o.resting && !o.closed && (
                     <button

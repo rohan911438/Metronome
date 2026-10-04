@@ -14,9 +14,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build the indexer image
         run: docker build -t metronome-indexer indexer
-      - name: Codegen and typecheck handlers against both configs
+      - name: Codegen and typecheck handlers against every config
         run: |
-          for config in config.yaml config.local.yaml; do
+          for config in config.yaml config.testnet-rpc.yaml config.local.yaml; do
             docker run --rm -e ENVIO_CONFIG=$config -e ENVIO_LOCAL_RPC_URL=http://localhost:8545 metronome-indexer \
               sh -c "pnpm envio codegen && npx tsc --noEmit -p ."
           done

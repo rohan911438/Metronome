@@ -20,7 +20,11 @@ Envio ships Linux/macOS binaries only, so it runs in Docker (on Windows too).
 cd indexer && docker compose up --build -d
 # GraphQL: http://localhost:8080/v1/graphql   (Hasura console: http://localhost:8080, admin secret "testing")
 
-# Monad testnet (HyperSync needs a free token from https://envio.dev/app/api-tokens)
+# Monad testnet, no token: syncs over public RPCs (thirdweb, 1,000 blocks per call; the official RPC as fallback).
+# The first sync from the market's deploy block takes about an hour.
+ENVIO_CONFIG=config.testnet-rpc.yaml docker compose up --build -d
+
+# Monad testnet over HyperSync (much faster; needs a free token from https://envio.dev/app/api-tokens)
 ENVIO_CONFIG=config.yaml ENVIO_API_TOKEN=... docker compose up --build -d
 
 # Start over (drops the database)

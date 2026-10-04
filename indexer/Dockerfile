@@ -1,8 +1,9 @@
 # Envio ships Linux/macOS binaries only, so the indexer always runs in this container (also on Windows).
 FROM node:24-slim
 
-# psql is used by envio to dump/restore its effects cache.
-RUN apt-get update && apt-get install -y --no-install-recommends postgresql-client && rm -rf /var/lib/apt/lists/*
+# psql is used by envio to dump/restore its effects cache. ca-certificates: envio's native HTTP client (RPC sync,
+# HyperSync) verifies TLS against the system store, which the slim image leaves empty.
+RUN apt-get update && apt-get install -y --no-install-recommends postgresql-client ca-certificates && rm -rf /var/lib/apt/lists/*
 RUN npm install -g pnpm@10.15.0
 
 WORKDIR /indexer

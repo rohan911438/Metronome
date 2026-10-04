@@ -8,6 +8,7 @@ import { createContext, useContext, useEffect, useRef, useState, type ReactNode 
 import { encodeAbiParameters, erc20Abi, keccak256, parseAbiItem, type Address, type Hex } from "viem";
 import { metronomeAbi } from "./abi";
 import { LOG_CHUNK, POLL_MS, deployment, publicClient } from "./config";
+import { INDEXER_URL, gql } from "./indexer";
 
 const HeadCtx = createContext<bigint>(0n);
 
@@ -196,6 +197,39 @@ export interface PortfolioOrder {
   baseOut: bigint;
   quoteOut: bigint;
   cancelled: boolean;
+  /** When and in which transaction the order was placed: from the indexer, when one is configured. */
+  placedAt?: number;
+  placedTx?: Hex;
+}
+
+interface IndexedOrder {
+  id: string;
+  placedAt: number;
+  placedTx: Hex;
+  status: "open" | "claimed" | "cancelled";
+  baseOut: string;
+  quoteOut: string;
+}
+
+/**
+ * Orders as the Envio indexer has them. Once an order is closed there it never changes, so it's cached; open ones are
+ * re-asked at most every few seconds. Any indexer failure just leaves the RPC path to do the work.
+ */
+const indexedCache = new Map<string, IndexedOrder>();
+let indexedAskedAt = 0;
+async function indexedOrders(ids: Hex[]): Promise<Map<string, IndexedOrder>> {
+  const missing = ids.filter((id) => indexedCache.get(id)?.status !== "claimed" && indexedCache.get(id)?.status !== "cancelled");
+  if (!INDEXER_URL || !missing.length || Date.now() - indexedAskedAt < 5_000) return indexedCache;
+  indexedAskedAt = Date.now();
+  try {
+    const r = await gql<{ Order: IndexedOrder[] }>(
+      `{ Order(where: { id: { _in: ${JSON.stringify(missing)} } }) { id placedAt placedTx status baseOut quoteOut } }`,
+    );
+    for (const o of r.Order) indexedCache.set(o.id.toLowerCase(), o);
+  } catch {
+    // indexer down or behind: the RPC path covers everything but times and tx links
+  }
+  return indexedCache;
 }
 
 /** Paid-out amounts of closed orders never change, so they're cached across renders. */
@@ -230,14 +264,20 @@ export function usePortfolio(owner?: Address, limit = 30) {
       const n = await publicClient.readContract({ ...m, functionName: "nonces", args: [a] });
       const nonces: bigint[] = [];
       for (let i = n - 1n; i >= 0n && nonces.length < limit; i--) nonces.push(i);
+      const indexed = await indexedOrders(nonces.map((nonce) => orderIdOf(a, nonce)));
       return Promise.all(
         nonces.map(async (nonce): Promise<PortfolioOrder> => {
           const id = orderIdOf(a, nonce);
           const o = await publicClient.readContract({ ...m, functionName: "getOrder", args: [id] });
           const r = await publicClient.readContract({ ...m, functionName: "getBatchResult", args: [o.batchId] });
+          const ix = indexed.get(id.toLowerCase());
           let paid = payoutCache.get(id);
           if (!paid) {
-            if (o.closed) {
+            if (o.closed && ix && ix.status !== "open") {
+              // The indexer has every payout, also for resting orders filled long after they were placed.
+              paid = { baseOut: BigInt(ix.baseOut), quoteOut: BigInt(ix.quoteOut), cancelled: ix.status === "cancelled" };
+              payoutCache.set(id, paid);
+            } else if (o.closed) {
               paid = await payoutsOf(id, a, o.batchId, head);
               payoutCache.set(id, paid);
             } else if (r.settled) {
@@ -260,6 +300,8 @@ export function usePortfolio(owner?: Address, limit = 30) {
             settled: r.settled,
             clearingTick: r.clearingTick,
             ...paid,
+            placedAt: ix?.placedAt,
+            placedTx: ix?.placedTx,
           };
         }),
       );
