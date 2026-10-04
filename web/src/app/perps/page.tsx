@@ -44,7 +44,7 @@ export default function PerpsPage() {
                 role="tab"
                 aria-selected={active}
                 onClick={() => setPicked(m.id)}
-                className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm ${active ? "bg-accent font-medium text-accent-fg" : "bg-surface-2 text-muted"}`}
+                className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm ${active ? "btn-primary font-medium" : "bg-surface-2 text-muted"}`}
               >
                 {m.symbol}
               </button>
@@ -99,7 +99,7 @@ export default function PerpsPage() {
         </section>
       )}
 
-      <section className="rounded-3xl border border-line bg-surface p-4">
+      <section className="card p-4">
         <div className="mb-2 flex items-center justify-between">
           <h2 className="text-sm font-semibold">Price</h2>
           <div className="flex gap-1" role="group" aria-label="Candle period">
@@ -122,7 +122,7 @@ export default function PerpsPage() {
         )}
       </section>
 
-      <section className="rounded-3xl border border-line bg-surface p-4">
+      <section className="card p-4">
         <div className="mb-2 flex items-baseline justify-between">
           <h2 className="text-sm font-semibold">Order book</h2>
           <span className="text-[11px] text-muted">{book ? `block ${book.at.b}` : "live"}</span>
@@ -143,7 +143,7 @@ export default function PerpsPage() {
 
 function Stat({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: "buy" | "sell" }) {
   return (
-    <div className="rounded-2xl border border-line bg-surface px-3 py-2.5">
+    <div className="card rounded-2xl px-3 py-2.5">
       <div className="text-[11px] text-muted">{label}</div>
       <div className={`tabular mt-0.5 font-mono text-sm ${tone === "buy" ? "text-buy" : tone === "sell" ? "text-sell" : ""}`}>{value}</div>
       {sub && <div className="tabular font-mono text-[11px] text-muted">{sub}</div>}

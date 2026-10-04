@@ -63,7 +63,7 @@ export default function StatsPage() {
         <Tile label="Keeper rewards paid" value={`${fmtAmount(BigInt(s.keeperRewards), QUOTE.decimals)} ${QUOTE.symbol}`} />
       </section>
 
-      <section className="rounded-3xl border border-line bg-surface p-4">
+      <section className="card p-4">
         <h2 className="mb-2 text-sm font-semibold">Clearing price per batch</h2>
         <PriceLine
           points={batches.map((b) => ({ x: Number(b.id), y: tickToPrice(b.clearingTick), label: `Batch #${b.id} · ${compact(base(b.volume))} ${BASE.native}` }))}
@@ -73,12 +73,12 @@ export default function StatsPage() {
         <p className="mt-1 text-[11px] text-muted">Every trader in a batch got this one price. Last {batches.length} batches with trades.</p>
       </section>
 
-      <section className="rounded-3xl border border-line bg-surface p-4">
+      <section className="card p-4">
         <h2 className="mb-2 text-sm font-semibold">Daily volume ({QUOTE.symbol})</h2>
         <DailyBars days={days.map((d) => ({ label: d.id.slice(5), value: quote(d.volumeQuote) }))} fmt={(v) => `${compact(v)} ${QUOTE.symbol}`} />
       </section>
 
-      <section className="rounded-3xl border border-line bg-surface p-4">
+      <section className="card p-4">
         <h2 className="mb-2 text-sm font-semibold">Gas per transaction</h2>
         <table className="tabular w-full font-mono text-xs">
           <thead className="text-left text-[11px] text-muted">
@@ -108,7 +108,7 @@ export default function StatsPage() {
         <p className="mt-2 text-[11px] text-muted">A transaction counts under its first Metronome event. Settles usually claim the batch&apos;s orders in the same transaction.</p>
       </section>
 
-      <section className="rounded-3xl border border-line bg-surface p-4">
+      <section className="card p-4">
         <h2 className="mb-2 text-sm font-semibold">Keepers</h2>
         {data!.Keeper.length ? (
           <ol className="divide-y divide-line text-sm">
@@ -138,7 +138,7 @@ function Intro({ children }: { children: React.ReactNode }) {
   return (
     <div className="space-y-4">
       <section>
-        <h1 className="text-sm text-muted">Exchange stats</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Exchange stats</h1>
         <p className="mt-1 text-xs text-muted">All-time numbers for Metronome, from our Envio indexer.</p>
       </section>
       {children}
@@ -148,7 +148,7 @@ function Intro({ children }: { children: React.ReactNode }) {
 
 function Tile({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="rounded-2xl border border-line bg-surface px-3 py-2.5">
+    <div className="card rounded-2xl px-3 py-2.5">
       <div className="text-[11px] text-muted">{label}</div>
       <div className="tabular mt-0.5 font-mono text-base">{value}</div>
       {sub && <div className="tabular font-mono text-[11px] text-muted">{sub}</div>}

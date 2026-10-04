@@ -105,7 +105,7 @@ export function AccountSheet({ onClose }: { onClose: () => void }) {
                 <button
                   disabled={w.busy || !w.supported}
                   onClick={() => w.unlock()}
-                  className="w-full rounded-2xl bg-accent py-3.5 font-medium text-accent-fg disabled:opacity-50"
+                  className="w-full rounded-2xl btn-primary py-3.5 font-medium disabled:opacity-50"
                 >
                   {w.busy ? "Waiting for passkey…" : `Unlock ${known.address ? shortAddr(known.address) : "account"}`}
                 </button>
@@ -118,7 +118,7 @@ export function AccountSheet({ onClose }: { onClose: () => void }) {
                 <button
                   disabled={w.busy || !w.supported}
                   onClick={w.create}
-                  className="w-full rounded-2xl bg-accent py-3.5 font-medium text-accent-fg disabled:opacity-50"
+                  className="w-full rounded-2xl btn-primary py-3.5 font-medium disabled:opacity-50"
                 >
                   {w.busy ? "Waiting for passkey…" : "Create account with a passkey"}
                 </button>
@@ -177,7 +177,7 @@ export function AccountSheet({ onClose }: { onClose: () => void }) {
                       setFunding(false);
                     }
                   }}
-                  className="w-full rounded-2xl bg-accent py-3 font-medium text-accent-fg disabled:opacity-50"
+                  className="w-full rounded-2xl btn-primary py-3 font-medium disabled:opacity-50"
                 >
                   {funding
                     ? "Funding…"
@@ -221,7 +221,7 @@ export function AccountSheet({ onClose }: { onClose: () => void }) {
                           setFunding(false);
                         }
                       }}
-                      className="mt-3 w-full rounded-2xl bg-accent py-3 font-medium text-accent-fg disabled:opacity-50"
+                      className="mt-3 w-full rounded-2xl btn-primary py-3 font-medium disabled:opacity-50"
                     >
                       {funding ? "Requesting…" : `Get 10,000 ${QUOTE.symbol} from Agora's testnet faucet`}
                     </button>

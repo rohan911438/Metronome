@@ -38,7 +38,7 @@ export default function RadarPage() {
     <div className="space-y-4">
       <section>
         <div className="flex items-baseline justify-between">
-          <h1 className="text-xl font-semibold">MEV radar</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">MEV radar</h1>
           <span className="rounded-full bg-accent/15 px-2 py-0.5 text-[11px] font-medium text-accent">Monad mainnet · Nansen</span>
         </div>
         <p className="mt-1 text-sm text-muted">
@@ -49,7 +49,7 @@ export default function RadarPage() {
 
       {r === undefined && <div className="h-40 animate-pulse rounded-3xl bg-surface-2" />}
       {r === null && (
-        <p className="rounded-3xl border border-line bg-surface p-4 text-sm text-muted">
+        <p className="card p-4 text-sm text-muted">
           No radar snapshot yet. Run <code className="font-mono">pnpm radar</code> in <code className="font-mono">bots/</code> with a
           Nansen API key.
         </p>
@@ -73,7 +73,7 @@ export default function RadarPage() {
             <Stat label="Victim losses" value={`$${fmtNum(r.sandwiches.reduce((s, x) => s + Math.max(0, x.profitUsd), 0))}`} sub="attacker profit, lower bound" />
           </section>
 
-          <section className="rounded-3xl border border-line bg-surface p-4">
+          <section className="card p-4">
             <h2 className="text-sm font-semibold">Who trades WMON</h2>
             <p className="mt-1 text-xs text-muted">
               Wallets with at least 2% of the window&apos;s trades. Labels and first funders from Nansen; a shared funder means one operator.
@@ -90,7 +90,7 @@ export default function RadarPage() {
                       <span className="tabular font-mono">{share.toFixed(1)}%</span>
                     </div>
                     <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-2">
-                      <div className="h-full rounded-full bg-accent" style={{ width: `${Math.min(100, share)}%` }} />
+                      <div className="h-full rounded-full bg-gradient-to-r from-accent to-accent-2" style={{ width: `${Math.min(100, share)}%` }} />
                     </div>
                     <div className="mt-1 text-[11px] text-muted">
                       {b.trades.toLocaleString("en-US")} trades · ${fmtNum(b.volumeUsd, 0)} · {b.label ? `Nansen: ${b.label}` : "no Nansen label"}
@@ -105,7 +105,7 @@ export default function RadarPage() {
             </ul>
           </section>
 
-          <section className="rounded-3xl border border-line bg-surface p-4">
+          <section className="card p-4">
             <h2 className="text-sm font-semibold">Sandwiches</h2>
             {r.sandwiches.length === 0 ? (
               <p className="mt-1 text-xs text-muted">
@@ -136,7 +136,7 @@ export default function RadarPage() {
             )}
           </section>
 
-          <section className="rounded-3xl border border-line bg-surface p-4 text-xs text-muted">
+          <section className="card p-4 text-xs text-muted">
             <h2 className="text-sm font-semibold text-fg">What it means for Metronome</h2>
             <p className="mt-1">
               Most WMON flow is a handful of bots racing each other to the same pools, which rewards whoever lands first in a block. On
@@ -160,7 +160,7 @@ export default function RadarPage() {
 
 function Stat({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: "buy" | "sell" }) {
   return (
-    <div className="rounded-2xl border border-line bg-surface px-3 py-2.5">
+    <div className="card rounded-2xl px-3 py-2.5">
       <div className="text-[11px] text-muted">{label}</div>
       <div className={`tabular mt-0.5 font-mono text-base ${tone === "buy" ? "text-buy" : tone === "sell" ? "text-sell" : ""}`}>{value}</div>
       {sub && <div className="text-[11px] text-muted">{sub}</div>}

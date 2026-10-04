@@ -171,7 +171,7 @@ export function TradeTicket({
               : `${isBuy ? "Buy" : "Sell"} ${BASE.native}`;
 
   return (
-    <section className="rounded-3xl border border-line bg-surface p-4">
+    <section className="card p-4">
       <div className="grid grid-cols-2 gap-1 rounded-2xl bg-surface-2 p-1" role="tablist">
         {[true, false].map((b) => (
           <button
@@ -287,7 +287,7 @@ export function TradeTicket({
       <button
         disabled={!!trader && !canSubmit}
         onClick={submit}
-        className={`mt-4 w-full rounded-2xl py-4 text-base font-semibold text-white disabled:opacity-40 ${isBuy ? "bg-buy" : "bg-sell"}`}
+        className={`mt-4 w-full rounded-2xl py-4 text-base font-semibold text-white disabled:opacity-40 ${isBuy ? "btn-buy" : "btn-sell"}`}
       >
         {label}
       </button>

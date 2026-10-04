@@ -16,23 +16,45 @@ export default function TradePage() {
 
   return (
     <div className="space-y-4">
-      <section>
-        <div className="flex items-baseline justify-between">
-          <h1 className="text-sm text-muted">MON / {QUOTE.symbol}</h1>
-          <span className="rounded-full bg-buy/15 px-2 py-0.5 text-[11px] font-medium text-buy">MEV-protected</span>
+      <section className="card-hero p-5">
+        <div className="flex items-center justify-between">
+          <h1 className="flex items-center gap-2 text-sm font-medium">
+            <span className="flex -space-x-1.5">
+              <span className="h-5 w-5 rounded-full bg-gradient-to-br from-accent to-accent-2 ring-2 ring-surface" />
+              <span className="h-5 w-5 rounded-full bg-gradient-to-br from-buy to-sky-400 ring-2 ring-surface" />
+            </span>
+            MON <span className="text-muted">/ {QUOTE.symbol}</span>
+          </h1>
+          <span className="flex items-center gap-1 rounded-full bg-buy/12 px-2.5 py-1 text-[11px] font-medium text-buy">
+            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z" />
+              <path d="M9 12l2 2 4-4" />
+            </svg>
+            MEV-protected
+          </span>
         </div>
-        <div className="mt-1 flex items-baseline gap-2">
-          <span className="tabular font-mono text-4xl font-semibold">{mk ? fmtPrice(tickToPrice(refTick)) : "…"}</span>
+        <div className="mt-3 flex items-baseline gap-2">
+          <span className="tabular font-mono text-[2.75rem] font-semibold leading-none tracking-tight">{mk ? fmtPrice(tickToPrice(refTick)) : "…"}</span>
           {change !== 0 && (
-            <span className={`tabular font-mono text-sm ${change > 0 ? "text-buy" : "text-sell"}`}>
+            <span className={`tabular rounded-md px-1.5 py-0.5 font-mono text-sm ${change > 0 ? "bg-buy/12 text-buy" : "bg-sell/12 text-sell"}`}>
               {change > 0 ? "+" : ""}
               {change.toFixed(2)}%
             </span>
           )}
         </div>
-        <p className="mt-1 text-xs text-muted">
-          Every block is one batch auction: orders in the same block trade at a single clearing price.
-        </p>
+        <dl className="mt-4 grid grid-cols-3 gap-2 text-xs">
+          {[
+            ["Best bid", mk?.bestBid !== undefined ? fmtPrice(tickToPrice(mk.bestBid)) : "—", "text-buy"],
+            ["Best ask", mk?.bestAsk !== undefined ? fmtPrice(tickToPrice(mk.bestAsk)) : "—", "text-sell"],
+            ["Last batch", last ? `#${last.batchId.toString().slice(-6)}` : "—", ""],
+          ].map(([k, v, tone]) => (
+            <div key={k} className="rounded-2xl bg-bg/40 px-3 py-2">
+              <dt className="text-muted">{k}</dt>
+              <dd className={`tabular mt-0.5 font-mono text-sm ${tone}`}>{v}</dd>
+            </div>
+          ))}
+        </dl>
+        <p className="mt-3 text-xs text-muted">Every block is one batch auction: orders in the same block trade at a single clearing price.</p>
         {error && <p className="mt-1 text-xs text-sell">RPC: {error}</p>}
       </section>
 
@@ -43,7 +65,7 @@ export default function TradePage() {
         band={mk && mk.lastSettledBatch > 0n ? [mk.lastClearingTick - PRICE_BAND, mk.lastClearingTick + PRICE_BAND] : undefined}
       />
 
-      <section className="rounded-3xl border border-line bg-surface p-4">
+      <section className="card p-4">
         <div className="mb-2 flex items-baseline justify-between">
           <h2 className="text-sm font-semibold">Order book as supply and demand</h2>
           <span className="text-[11px] text-muted">live</span>
@@ -51,7 +73,7 @@ export default function TradePage() {
         <DepthChart levels={mk?.book ?? []} clearingTick={mk?.lastClearingTick || undefined} center={refTick} />
       </section>
 
-      <section className="rounded-3xl border border-line bg-surface p-4">
+      <section className="card p-4">
         <h2 className="mb-2 text-sm font-semibold">Recent batches</h2>
         {!mk?.recent.length ? (
           <p className="text-xs text-muted">No trades in the last 100 blocks.</p>

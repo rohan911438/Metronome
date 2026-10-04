@@ -69,7 +69,7 @@ export function PerplAccountCard({ ctx }: { ctx: PerplContext | undefined }) {
             <Dot tone="buy" /> One-click trading is on (set from this device).
           </p>
         ) : (
-          <button onClick={() => run(0n)} className="w-full rounded-2xl bg-accent py-2.5 text-sm font-medium text-accent-fg">
+          <button onClick={() => run(0n)} className="w-full rounded-2xl btn-primary py-2.5 text-sm font-medium">
             Turn on one-click trading
           </button>
         )}
@@ -158,7 +158,7 @@ export function PerplAccountCard({ ctx }: { ctx: PerplContext | undefined }) {
           <button
             disabled={running || tooSmall || tooBig || lowGas}
             onClick={() => run(deposit)}
-            className="w-full rounded-2xl bg-accent py-2.5 text-sm font-medium text-accent-fg disabled:opacity-50"
+            className="w-full rounded-2xl btn-primary py-2.5 text-sm font-medium disabled:opacity-50"
           >
             {running ? "Confirming…" : st.account ? "Turn on one-click trading" : `Open Perpl account with ${fmt(deposit)}`}
           </button>
@@ -185,7 +185,7 @@ export function PerplAccountCard({ ctx }: { ctx: PerplContext | undefined }) {
   }
 
   return (
-    <section className="space-y-4 rounded-3xl border border-line bg-surface p-4 text-xs text-muted">
+    <section className="space-y-4 card p-4 text-xs text-muted">
       <div>
         <h2 className="mb-2 flex items-center justify-between text-sm font-semibold text-fg">
           Your Perpl account
@@ -329,7 +329,7 @@ function ApiKeySection({ chainId, vaultKey }: { chainId: number; vaultKey?: Uint
               {err && <p className="text-sell">{err}</p>}
               <p>{vaultKey ? "The private key is encrypted with your passkey before it's saved, and never leaves this device." : "Test account: the key is kept in memory only."}</p>
               <div className="flex gap-2">
-                <button onClick={save} className="flex-1 rounded-2xl bg-accent py-2 text-sm font-medium text-accent-fg">
+                <button onClick={save} className="flex-1 rounded-2xl btn-primary py-2 text-sm font-medium">
                   Save key
                 </button>
                 <button onClick={() => setAdding(false)} className="rounded-2xl bg-surface-2 px-4 py-2 text-sm text-fg">

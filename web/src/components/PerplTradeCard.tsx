@@ -78,7 +78,7 @@ export function PerplTradeCard({ ctx, market, state }: { ctx: PerplContext | und
 
   const unit = market.symbol;
   return (
-    <section className="space-y-4 rounded-3xl border border-line bg-surface p-4 text-xs text-muted">
+    <section className="space-y-4 card p-4 text-xs text-muted">
       <h2 className="text-sm font-semibold text-fg">Trade {unit}-PERP</h2>
 
       {pos && (
@@ -169,7 +169,7 @@ export function PerplTradeCard({ ctx, market, state }: { ctx: PerplContext | und
             leverage,
           })
         }
-        className={`w-full rounded-2xl py-3 text-base font-medium text-white disabled:opacity-50 ${isBuy ? "bg-buy" : "bg-sell"}`}
+        className={`w-full rounded-2xl py-3 text-base font-medium text-white disabled:opacity-50 ${isBuy ? "btn-buy" : "btn-sell"}`}
       >
         {busy ? "Sending…" : tooBig ? "Not enough margin" : `${isBuy ? "Long" : "Short"} ${unit} at market`}
       </button>

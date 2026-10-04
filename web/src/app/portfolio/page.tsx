@@ -43,21 +43,21 @@ export default function PortfolioPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold">Portfolio</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">Portfolio</h1>
       <dl className="grid grid-cols-3 gap-2 text-center">
         {[
           [BASE.native, bal ? fmtBase(bal.mon) : "…"],
           [BASE.symbol, bal ? fmtBase(bal.base) : "…"],
           [QUOTE.symbol, bal ? fmtQuote(bal.quote) : "…"],
         ].map(([k, v]) => (
-          <div key={k} className="rounded-2xl border border-line bg-surface p-3">
+          <div key={k} className="card rounded-2xl p-3">
             <dt className="text-xs text-muted">{k}</dt>
             <dd className="tabular mt-1 truncate font-mono text-sm">{v}</dd>
           </div>
         ))}
       </dl>
 
-      <section className="rounded-3xl border border-line bg-surface p-2">
+      <section className="card p-2">
         <h2 className="px-2 pt-2 text-sm font-semibold">Orders</h2>
         {error && <p className="px-2 text-xs text-sell">{error}</p>}
         {cancelErr && <p className="px-2 text-xs text-sell">Cancel failed: {cancelErr}</p>}

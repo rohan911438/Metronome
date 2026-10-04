@@ -126,12 +126,12 @@ export default function LabPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-xl font-semibold">Sandwich lab</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Sandwich lab</h1>
         <p className="mt-1 text-sm text-muted">
           The same attack on two venues. A bot buys just before the victim and sells just after. On an AMM the victim pays the price the bot pushed
           up. On Metronome all three orders land in the same batch and clear at one price, so there is nothing to push.
         </p>
-        <Link href="/radar" className="mt-2 inline-block text-sm text-accent underline">
+        <Link href="/radar" className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent">
           MEV radar: who really trades WMON on Monad mainnet →
         </Link>
       </div>
@@ -172,7 +172,7 @@ export default function LabPage() {
       </p>
 
       {lab && (
-        <section className="rounded-3xl border border-line bg-surface p-4">
+        <section className="card p-4">
           <h2 className="text-sm font-semibold">Run it yourself</h2>
           <p className="mt-1 text-xs text-muted">
             One transaction attacks both venues; a second one settles the Metronome batch and reports. You play every role (maker, attacker,
@@ -184,7 +184,7 @@ export default function LabPage() {
           <button
             disabled={!trader || !!busy}
             onClick={runLab}
-            className="mt-3 w-full rounded-2xl bg-accent py-3.5 font-medium text-accent-fg disabled:opacity-40"
+            className="mt-3 w-full rounded-2xl btn-primary py-3.5 font-medium disabled:opacity-40"
           >
             {!trader ? "Sign in first" : (busy ?? "Run the sandwich")}
           </button>

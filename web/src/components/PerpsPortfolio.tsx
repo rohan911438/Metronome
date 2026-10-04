@@ -39,7 +39,7 @@ export function PerpsPortfolio({ owner }: { owner: Address }) {
   const fmtC = (v: bigint) => `${fmtNum(scaled(Number(v), dec), 2)} ${sym}`;
 
   return (
-    <section className="rounded-3xl border border-line bg-surface p-2">
+    <section className="card p-2">
       <div className="flex items-center px-2 pt-2">
         <h2 className="text-sm font-semibold">Perps on Perpl</h2>
         <Link href="/perps" className="ml-auto text-xs text-accent">

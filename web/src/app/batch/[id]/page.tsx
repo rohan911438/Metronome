@@ -37,7 +37,7 @@ export default function BatchPage({ params }: { params: Promise<{ id: string }> 
       </div>
       {error && <p className="text-xs text-sell">{error}</p>}
 
-      <section className="rounded-3xl border border-line bg-surface p-4">
+      <section className="card p-4">
         <DepthChart levels={data?.levels ?? []} clearingTick={r?.settled && r.volume > 0n ? r.clearingTick : undefined} />
         <p className="mt-2 text-xs text-muted">
           Orders placed in this block (taker orders and new limit orders). Limit orders already resting from earlier blocks also took part but are not
@@ -54,7 +54,7 @@ export default function BatchPage({ params }: { params: Promise<{ id: string }> 
           ["Bids in block", `${fmtBase(totalBuy, 0)} MON`],
           ["Asks in block", `${fmtBase(totalSell, 0)} MON`],
         ].map(([k, v]) => (
-          <div key={k} className="rounded-2xl border border-line bg-surface p-3">
+          <div key={k} className="card rounded-2xl p-3">
             <dt className="text-xs text-muted">{k}</dt>
             <dd className="tabular mt-1 font-mono">{v}</dd>
           </div>
