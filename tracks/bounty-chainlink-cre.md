@@ -46,3 +46,9 @@
 - Proven on testnet: price-only report `0xc610c306…f57b` and settle + price `0xab20831c…c387` (see `cre/metronome-heartbeat/README.md`).
 - Deploy access: still "Not enabled" on Oct 3. Not required: simulation is accepted, and Chainlink deploys simulated workflows for hackathon teams. If it gets enabled: `cre workflow deploy metronome-heartbeat --target production-settings`, then `setForwarder(0xF8344CFd5c43616a4366C34E3EEE75af79a74482)`.
 - Price source: Pyth Hermes now answers "unauthorized" without a key, so the workflow uses Coinbase's public spot endpoint.
+
+## Decision (Oct 4): submit with simulation, don't wait for deploy access
+Deploy access is still "Not enabled" (`cre whoami`, Oct 4), and only Chainlink can turn it on. We don't need it: the rules accept "a successful simulation (via the CRE CLI)", and Chainlink deploys simulated hackathon workflows for the team. Our simulations are not dry runs: `simulate --broadcast` wrote real reports on Monad testnet that settled real user orders and stored MON/USD. So:
+- **Submit with the simulation evidence** (tx links above and in `cre/metronome-heartbeat/README.md`), and record one simulation run in the demo video.
+- In the submission form / Chainlink Discord, ask them to deploy it: `cre workflow deploy metronome-heartbeat --target production-settings`, then `setForwarder(0xF8344CFd5c43616a4366C34E3EEE75af79a74482)` on the receiver (owner = our deployer; we do this step).
+- The keeper bot stays as the fallback settler, so the market never depends on CRE being live.

@@ -29,6 +29,13 @@ Perpl is a fully onchain perpetual-futures order book on Monad. Its trades are a
 - [ ] **Testnet collateral:** how to get testnet "USD"; is the testnet beta open to everyone?
 - [ ] Optional: a **builder code** (attributes our volume; lets us charge a fee later)
 
+## Decision (Oct 4): submit without the whitelist
+Perpl hasn't whitelisted our origin, and we won't strip the Origin header to get around it. What we submit works without it:
+- **Perpl's API for market data**: every open market, ticker, book and candles through `app/api/perpl` (Perpl sends no CORS headers and its WebSocket refuses browser origins).
+- **Trading on Perpl's exchange contract** from the passkey wallet (account open, long/short IOC, close), live on testnet; positions also in `/portfolio`.
+- **API key**: the passkey derives an Ed25519 key for Perpl (shown in the keys panel); a key made on perpl.xyz can be pasted, is encrypted with the passkey and checked with a signed `GET /v1/trading/wallet`.
+- Say plainly in the write-up that in-app key enrollment and API trading switch on as soon as the origin is whitelisted (one config change). If Perpl answers before Oct 12, finish enrollment then.
+
 ## How we plan to win
 - Onboarding to a first perp trade entirely inside our app: passkey → deposit → key → trade, no visit to perpl.xyz
 - One app, two venues: spot on Metronome (MEV-proof batch auction), perps on Perpl

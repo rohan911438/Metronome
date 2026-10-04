@@ -124,8 +124,10 @@ A mobile-first trading app designed for people who have never used a wallet:
 - **One tap to trade** MON against a dollar stablecoin (AUSD, on testnet from Agora's faucet in one tap). Every trade shows its batch and clearing price.
 - **Filled within about a second.** Funds arrive automatically; there is no "claim" button to find.
 - **See the auction live:** supply and demand curves animate and cross every block.
-- **Sandwich lab:** run the same attack against an AMM and against Metronome, side by side, and watch the victim's loss.
+- **Sandwich lab:** run the same attack against an AMM and against Metronome, side by side, and watch the victim's loss. Live on testnet: the AMM victim overpays 5.27%, the Metronome victim 0%; the app mints the test tokens a run needs.
 - **Perps tab:** Perpl's perpetual futures markets (live prices, candles, order book) opening a Perpl account and trading perps (long/short at market, leverage, live position and P&L, one-tap close) from the same passkey wallet, straight on Perpl's contract.
+- **Portfolio:** Metronome orders (with time and transaction from the indexer) next to the Perpl account and every open perp position.
+- **Sub-accounts:** the same passkey derives more wallets (each its own Perpl account); switch in one tap, no popup.
 - **Stats:** all-time volume, batches, traders, time to settlement, gas per action and keepers, from our Envio indexer.
 
 ## Tracks and bounties
@@ -137,7 +139,7 @@ One main track, plus sponsor bounties that the same product qualifies for. Detai
 | **Track 01 — Onchain Finance & Trading** | Metronome itself: the batch-auction exchange, app and bots | Building; live on testnet |
 | **Grand Champion** | The same project (considered automatically) | — |
 | **Mera — Best Mera-Powered UX** | Face ID login, popup-free signing in the app | Integrated |
-| **Mera — One Passkey, Many Keys** | One passkey derives the wallet key, the Perpl API key and an encryption key | Integrated |
+| **Mera — One Passkey, Many Keys** | One passkey derives the wallet key, sub-accounts, the Perpl API key and an encryption key | Integrated |
 | **Envio — Best Use of Envio** | Indexer behind the Stats page | Integrated (local chain); testnet needs an API token |
 | **Perpl — Best use of Perpl's API** | Perps tab: market data, account setup and trading in-app | Integrated; account + long/short trades live on testnet |
 | **Agora — Best Mobile Trading App** | Mobile app: passkey login, AUSD balance, Metronome and Perpl trades | Passkey → AUSD (faucet button) → Perpl trade works on testnet; filming on a real phone next |
@@ -174,10 +176,12 @@ Metronome is meant to be **infrastructure**, not a single app:
 | Architecture and roadmap | Sep 25 | ✅ |
 | Core contract with differential fuzz + invariant tests | Oct 1 | ✅ |
 | Resting (maker) orders: post once, fill across batches | — | ✅ |
-| Deployed on Monad testnet: WMON/USDC market [`0x32f1…3761`](https://testnet.monadscan.com/address/0x32f11865b2272B24f0F8174598EA64A82fc63761) (earlier WMON/AUSD market retired: no testnet AUSD) | Oct 1 | ✅ |
+| Deployed on Monad testnet: WMON/AUSD market [`0x99E4…a889`](https://testnet.monadscan.com/address/0x99E4DBCF8edE8092Be972307eB3d0Cd91ecBa889) (back on Agora's AUSD since its faucet was refilled on Oct 3) | Oct 1 | ✅ |
 | Keeper + market-maker bots; end-to-end test on a local chain (sandwich: AMM victim −527 bps, Metronome 0) | Oct 3 | ✅ |
 | Bots live on testnet: keeper + market maker, 3 taker fills between two wallets, each settled within 1–2 blocks | Oct 3 | ✅ |
 | Mobile web app (Next.js PWA): trade, portfolio, batch explorer, sandwich lab | Oct 3 | ✅ |
+| Sandwich lab live on testnet (own tWMON/tAUSD lab market): AMM victim −5.27%, Metronome 0% ([run](https://testnet.monadscan.com/tx/0x12915a346f7d4199f954d7c26e35b5f7bf783997ddf7a1577c70292a7c209712), [settle](https://testnet.monadscan.com/tx/0xa152acebf1f269c2efc30f80c02582f359d06322ded676bfac6da53264a66884)) | Oct 3 | ✅ Oct 4 |
+| Passkey sub-accounts; Perpl positions in the portfolio | — | ✅ Oct 4 |
 | Mera passkey login (one passkey → wallet key + Perpl key) | Oct 3 | ✅ |
 | Perpl perps tab: live markets, account setup from the passkey wallet (live on testnet) | Oct 7 | ✅ |
 | Perpl trading from the app (on-chain `execOrder`, no API key needed) | Oct 7 | ✅ live on testnet Oct 3 |
@@ -187,9 +191,10 @@ Metronome is meant to be **infrastructure**, not a single app:
 | Chainlink CRE workflow: built, 17 tests, settles batches and brings MON/USD on-chain, live on testnet ([details](#chainlink-cre-the-exchanges-heartbeat-and-price-feed)) | Oct 8 | ✅ |
 | CRE workflow deployed on Chainlink's network | Oct 10 | ⏳ optional: Chainlink deploys simulated hackathon workflows; our deploy access is pending |
 | Nansen MEV radar | Oct 10 | ✅ Oct 3 |
-| Monad mainnet | Oct 11 | ⏳ |
+| Mainnet readiness: fork test against real WMON + AUSD, deploy script (K=4) dry-run | Oct 11 | ✅ Oct 4 |
+| Monad mainnet deploy | Oct 11 | ⏳ needs ~3 MON + seed liquidity on mainnet |
 
-**Tests:** 104 Foundry tests (unit, differential fuzz, invariants, gas and shard benchmarks) and 7 Go workflow tests, all run in CI.
+**Tests:** 105 Foundry tests (unit, differential fuzz, invariants, gas and shard benchmarks, and a fork test against real mainnet WMON and AUSD) and 7 Go workflow tests, all run in CI (the fork test needs `MONAD_RPC_URL`).
 
 **Monad testnet contracts**
 
@@ -197,6 +202,7 @@ Metronome is meant to be **infrastructure**, not a single app:
 |---|---|
 | Metronome (WMON/AUSD market) | [`0x99E4DBCF8edE8092Be972307eB3d0Cd91ecBa889`](https://testnet.monadscan.com/address/0x99E4DBCF8edE8092Be972307eB3d0Cd91ecBa889) |
 | MetronomeHeartbeat (CRE receiver, MON/USD feed) | [`0x99758F4e8Ce8E9A5364d1a6aBc2a7cF40ac9874f`](https://testnet.monadscan.com/address/0x99758F4e8Ce8E9A5364d1a6aBc2a7cF40ac9874f) |
+| SandwichLab (with MiniAMM and a tWMON/tAUSD lab market) | [`0xc2E9492f6b45c9e709e2e4a43FBfD505Bf71f01b`](https://testnet.monadscan.com/address/0xc2E9492f6b45c9e709e2e4a43FBfD505Bf71f01b) |
 
 Every verified address (tokens, oracles, CRE forwarders) is in [`docs/network.md`](docs/network.md). The demo video will be added here. Full plan: [`docs/roadmap.md`](docs/roadmap.md).
 
