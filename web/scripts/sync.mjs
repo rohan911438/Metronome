@@ -17,7 +17,7 @@ const abi = resolve(repo, "bots/src/abi.ts");
 if (existsSync(abi)) copyFileSync(abi, resolve(out, "abi.ts"));
 
 const previous = existsSync(target)
-  ? JSON.parse(readFileSync(target, "utf8").replace(/^[\s\S]*?= /, "").replace(/ as const;\s*$/, ""))
+  ? JSON.parse(readFileSync(target, "utf8").match(/export const deployments = ([\s\S]*?) as const;/)[1])
   : {};
 
 const dir = resolve(repo, "contracts/deployments");
