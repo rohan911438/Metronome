@@ -1,15 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { createWalletClient, erc20Abi, http, parseAbi, parseEther, parseUnits, type Address } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
+import { createWalletClient, erc20Abi, http, parseAbi, parseEther, parseUnits, toHex, type Address } from "viem";
+import { privateKeyToAccount, privateKeyToAddress } from "viem/accounts";
 import { mockErc20Abi } from "@/lib/abi";
 import { BASE, QUOTE, chain, deployment, devChain, isFork, publicClient, rpcUrl } from "@/lib/config";
 import { useBalances } from "@/lib/hooks";
 import { walletPath } from "@/lib/keys";
 import { fmtBase, fmtQuote, shortAddr } from "@/lib/price";
 import { useWallet } from "@/lib/wallet";
+
+/** Sub-account indexes shown in the keys panel: the main wallet and two more on the same passkey. */
+const SUB_ACCOUNTS = [0, 1, 2];
 
 // Anvil account 0 (public test key). Only used on the local chain to fund test accounts.
 const ANVIL_FUNDER = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
@@ -69,6 +72,7 @@ export function AccountSheet({ onClose }: { onClose: () => void }) {
   const [fundError, setFundError] = useState<string>();
   const [copied, setCopied] = useState(false);
   const [showKeys, setShowKeys] = useState(false);
+  const subAccounts = useMemo(() => (keys ? SUB_ACCOUNTS.map((i) => privateKeyToAddress(toHex(keys.walletKey(i)))) : []), [keys]);
 
   const copy = (text: string) => {
     navigator.clipboard?.writeText(text);
@@ -235,12 +239,29 @@ export function AccountSheet({ onClose }: { onClose: () => void }) {
                 </button>
                 {showKeys && (
                   <div className="mt-2 space-y-2 text-xs">
-                    <p className="text-muted">Every key below is re-derived from your passkey each time you unlock. None of them is stored anywhere.</p>
+                    <p className="text-muted">
+                      Every key below is re-derived from your passkey each time you unlock. None of them is stored anywhere. Sub-accounts are separate
+                      wallets (and separate Perpl accounts, so separate margin), e.g. one for a trading bot; switching needs no popup.
+                    </p>
                     <dl className="space-y-2">
-                      <div>
-                        <dt className="text-muted">Monad wallet · {walletPath(0)}</dt>
-                        <dd className="break-all font-mono">{trader.address}</dd>
-                      </div>
+                      {subAccounts.map((address, i) => {
+                        const active = i === w.account;
+                        return (
+                          <div key={i}>
+                            <dt className="flex items-center text-muted">
+                              {i === 0 ? "Monad wallet" : `Sub-account ${i}`} · {walletPath(i)}
+                              {active ? (
+                                <span className="ml-auto rounded-full bg-accent/15 px-2 text-[11px] text-accent">in use</span>
+                              ) : (
+                                <button onClick={() => w.selectAccount(i)} className="ml-auto rounded-full bg-surface-2 px-2 text-[11px] text-fg">
+                                  Switch
+                                </button>
+                              )}
+                            </dt>
+                            <dd className="break-all font-mono">{address}</dd>
+                          </div>
+                        );
+                      })}
                       <div>
                         <dt className="text-muted">Perpl API key (Ed25519) · public</dt>
                         <dd className="break-all font-mono">{keys.perpl.publicKey}</dd>

@@ -15,7 +15,7 @@ Mera (Category Labs, `@category-labs/mera`, open source, **no API key or signup*
 |---|---|---|
 | Monad wallet | BIP-44 `m/44'/60'/0'/0/0` (secp256k1) | Holds MON/WMON/AUSD, places Metronome orders, Perpl deposits |
 | Perpl API key | Ed25519 from a separate derivation (SLIP-10) | Signs every Perpl trading request |
-| Bot / sub-accounts (stretch) | `m/44'/60'/0'/0/i` | Separate accounts for a market-making bot or strategies, recoverable from the same passkey |
+| Sub-accounts (built Oct 4) | `m/44'/60'/0'/0/i` | Separate wallets for a bot or a strategy, each its own Perpl account (separate margin); switch in one tap with no popup, recoverable from the same passkey |
 
 A user who logs in on a new device with the synced passkey gets back **all** of them, with nothing stored on any server.
 

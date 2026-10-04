@@ -64,6 +64,7 @@ Solo build. Design: [`architecture.md`](architecture.md). Submission target **Oc
 - [x] AUSD balance in the header and account sheet; "Add AUSD/MON" (receive address; testnet faucet link)
 - [x] CI job `web.yml`: generated files up to date, typecheck, testnet build
 - [x] Validated in headless Edge at phone size against `pnpm dev:local`: 9/9 UI checks (fund, buy, sell, limit, portfolio + cancel, batch, lab run); passkey flow with a virtual PRF authenticator 5/5 (create, keys, lock/unlock and reload give the same address, trade with no popup); testnet build reads the live contract with no errors
+- [x] Oct 4: **Sub-accounts** on the same passkey (`m/44'/60'/0'/0/1`, `/2`): listed in the keys panel, one-tap switch with a new Mera signing session (no popup), remembered across lock/unlock; each is its own Perpl account (separate margin). Headless Edge with a virtual PRF passkey: 6/6
 - [ ] Test on a real phone (iOS 18+ / Android) with a real passkey → part of M3
 
 ### Phase 4b — Perpl perps tab (Oct 4–7)

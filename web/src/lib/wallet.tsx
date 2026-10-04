@@ -48,12 +48,18 @@ interface StoredCredential {
   transports?: readonly string[];
   /** Address of the derived wallet, so a locked account can still be shown. */
   address?: Address;
+  /** Which sub-account (m/44'/60'/0'/0/i) was in use, so unlocking returns to it. */
+  account?: number;
 }
 
 interface WalletState {
   trader: Trader | null;
   /** Keys derived from the passkey (null for the local burner or while locked). */
   keys: DerivedKeys | null;
+  /** Active sub-account index of the passkey wallet (0 = main). */
+  account: number;
+  /** Switch the passkey wallet to sub-account `index`: a new signing session on m/44'/60'/0'/0/index, no popup. */
+  selectAccount: (index: number) => void;
   /** A passkey was used on this device before: offer "unlock" rather than "create". */
   known: StoredCredential | null;
   /** WebAuthn is available in this browser. PRF support is only known after the first passkey call. */
@@ -117,6 +123,7 @@ function explain(e: unknown): string {
 export function WalletProvider({ children }: { children: ReactNode }) {
   const [trader, setTrader] = useState<Trader | null>(null);
   const [keys, setKeys] = useState<DerivedKeys | null>(null);
+  const [account, setAccount] = useState(0);
   const [known, setKnown] = useState<StoredCredential | null>(null);
   const [supported, setSupported] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -132,19 +139,32 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const start = useCallback((prfOutput: Uint8Array, credential: StoredCredential) => {
-    const derived = deriveKeys(prfOutput);
-    const session = createSecp256k1SigningSession({ privateKey: derived.walletKey(0) });
+  /** Opens a Mera signing session on sub-account `index` and makes it the active trader. */
+  const activate = useCallback((derived: DerivedKeys, credential: StoredCredential, index: number) => {
+    const session = createSecp256k1SigningSession({ privateKey: derived.walletKey(index) });
     endSession.current?.();
     endSession.current = () => session.end();
-    const account = toViemAccount(session);
-    const stored = { ...credential, address: account.address };
+    const viemAccount = toViemAccount(session);
+    const stored = { ...credential, address: viemAccount.address, account: index };
     writeStorage(CRED_KEY, JSON.stringify(stored));
     writeStorage(BURNER_KEY, null);
     setKnown(stored);
     setKeys(derived);
-    setTrader(makeTrader(account, "passkey"));
+    setAccount(index);
+    setTrader(makeTrader(viemAccount, "passkey"));
   }, []);
+
+  const start = useCallback(
+    (prfOutput: Uint8Array, credential: StoredCredential) => activate(deriveKeys(prfOutput), credential, credential.account ?? 0),
+    [activate],
+  );
+
+  const selectAccount = useCallback(
+    (index: number) => {
+      if (keys && known && index !== account) activate(keys, known, index);
+    },
+    [keys, known, account, activate],
+  );
 
   const run = useCallback(async (fn: () => Promise<void>) => {
     setBusy(true);
@@ -178,7 +198,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           rpId: location.hostname,
           credential: stored ? { credentialId: stored.credentialId, transports: stored.transports as never } : undefined,
         });
-        start(res.prfOutput, { credentialId: res.credentialId, transports: stored?.transports });
+        // The same passkey returns to the sub-account it last used; a different one starts at the main account.
+        const remembered = readJson<StoredCredential>(CRED_KEY);
+        const account = remembered?.credentialId === res.credentialId ? (remembered.account ?? 0) : 0;
+        start(res.prfOutput, { credentialId: res.credentialId, transports: stored?.transports, account });
       }),
     [run, start],
   );
@@ -195,20 +218,22 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     writeStorage(CRED_KEY, null);
     writeStorage(BURNER_KEY, null);
     setKnown(null);
+    setAccount(0);
   }, [lock]);
 
   const useBurner = useCallback(() => {
     const k = generatePrivateKey();
     writeStorage(BURNER_KEY, JSON.stringify(k));
     setKeys(null);
+    setAccount(0);
     setTrader(makeTrader(privateKeyToAccount(k), "burner"));
   }, []);
 
   useEffect(() => () => endSession.current?.(), []);
 
   const value = useMemo<WalletState>(
-    () => ({ trader, keys, known, supported, busy, error, create, unlock, lock, forget, useBurner }),
-    [trader, keys, known, supported, busy, error, create, unlock, lock, forget, useBurner],
+    () => ({ trader, keys, account, selectAccount, known, supported, busy, error, create, unlock, lock, forget, useBurner }),
+    [trader, keys, account, selectAccount, known, supported, busy, error, create, unlock, lock, forget, useBurner],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
