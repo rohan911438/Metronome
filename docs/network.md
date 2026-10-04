@@ -14,7 +14,7 @@ Verified values the code and bots rely on. **"Verified"** means checked with an 
 | Token | Testnet | Mainnet | Decimals |
 |---|---|---|---|
 | **AUSD** (quote) | `0xa9012a055bd4e0eDfF8Ce09f960291C09D5322dC` (verified) | `0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a` | 6 (verified) |
-| **WMON** (base) | `0xFb8bf4c1CC7a94c73D209a149eA2AbEa852BC541` (verified) | TBC | 18 (verified) |
+| **WMON** (base) | `0xFb8bf4c1CC7a94c73D209a149eA2AbEa852BC541` (verified) | `0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A` (verified Oct 4: symbol WMON, 18 decimals, ~289M supply) | 18 (verified) |
 | AUSD faucet | `0xd236c18D274E54FAccC3dd9DDA4b27965a73ee6C` (proxy; refilled by Oct 3 with ~999M AUSD): `requestFunds(to)` gives 10,000 AUSD, one request per 60 s across all callers (`MaxFrequencyExceeded`), only while `to` holds < 100,000 | — | — |
 | **TestAUSD** (tAUSD, ours, open mint ≤10M per call; testnet quote for a few hours on Oct 3, unused since the AUSD faucet came back) | [`0xA89Cdf8C92eC4f84654b44c0768FEC1b594cd091`](https://testnet.monadscan.com/address/0xA89Cdf8C92eC4f84654b44c0768FEC1b594cd091) | — | 6 |
 | USDC (Circle; testnet quote Sep 26 – Oct 3) | `0x534b2f3A21130d7a60830c2Df862319e593943A3` (verified) | `0x754704Bc059F8C67012fEd69BC8A327a5aafb603` | 6 (verified) |

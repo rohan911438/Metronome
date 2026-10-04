@@ -22,8 +22,9 @@ function priceMinAt(uint256 refPriceE18, uint8 baseDecimals, uint8 quoteDecimals
 /// @notice Deploys one Metronome market and writes its config to deployments/<chainId>.json.
 /// @dev Config via env (all optional on testnet):
 ///      BASE_TOKEN, QUOTE_TOKEN   token addresses (testnet defaults: WMON, AUSD; the live testnet market uses Circle USDC)
-///      REF_PRICE_E18             reference price of 1 base in quote, 18 decimals; placed at tick 2048 (default 0.025)
-///      SHARDS                    book shards per batch (default 16)
+///      REF_PRICE_E18             reference price of 1 base in quote, 18 decimals; placed at tick 2048 (default 0.025;
+///                                required on mainnet)
+///      SHARDS                    book shards per batch (default 16; 4 on mainnet)
 ///      MIN_ORDER_SIZE            base units (default 1e18 = 1 MON)
 ///      FEE_BPS, SETTLE_REWARD    default 5 bps, 0
 ///      OWNER                     default: the deployer
@@ -35,8 +36,12 @@ contract Deploy is Script {
 
     function run() external returns (Metronome m) {
         (address base, address quote) = _tokens();
-        uint256 refPrice = vm.envOr("REF_PRICE_E18", uint256(0.025e18));
-        uint256 shards = vm.envOr("SHARDS", uint256(16));
+        // Mainnet takes the real MON price explicitly; testnet keeps its 0.025 grid.
+        uint256 refPrice =
+            block.chainid == 143 ? vm.envUint("REF_PRICE_E18") : vm.envOr("REF_PRICE_E18", uint256(0.025e18));
+        // Mainnet: K=4. While escrow transfers serialize every order anyway, more shards only add settle gas
+        // (docs/benchmark.md: K=16 settles at 3.2x the cost of K=1); 4 keeps the book layout parallel-ready.
+        uint256 shards = vm.envOr("SHARDS", uint256(block.chainid == 143 ? 4 : 16));
         uint256 minOrderSize = vm.envOr("MIN_ORDER_SIZE", uint256(1e18));
         uint16 feeBps = uint16(vm.envOr("FEE_BPS", uint256(5)));
         uint128 settleReward = uint128(vm.envOr("SETTLE_REWARD", uint256(0)));
@@ -65,7 +70,7 @@ contract Deploy is Script {
             base = vm.envOr("BASE_TOKEN", address(0xFb8bf4c1CC7a94c73D209a149eA2AbEa852BC541)); // WMON
             quote = vm.envOr("QUOTE_TOKEN", address(0xa9012a055bd4e0eDfF8Ce09f960291C09D5322dC)); // AUSD
         } else if (block.chainid == 143) {
-            base = vm.envAddress("BASE_TOKEN"); // mainnet WMON: set explicitly
+            base = vm.envOr("BASE_TOKEN", address(0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A)); // WMON (verified)
             quote = vm.envOr("QUOTE_TOKEN", address(0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a)); // AUSD
         } else {
             base = vm.envAddress("BASE_TOKEN");
