@@ -21,6 +21,8 @@ export const isFork = !isLocal && /^https?:\/\/(127\.0\.0\.1|localhost)(:|\/|$)/
 export const devChain = isLocal || isFork;
 /** Poll at block speed: Monad blocks are ~0.4 s, Anvil's are 1 s here. */
 export const POLL_MS = isLocal ? 500 : 400;
+/** Metronome.PRICE_BAND: once the market has traded, orders must be within this many ticks of the last clearing price. */
+export const PRICE_BAND = 128;
 /** Max block span per eth_getLogs call; public RPCs cap this. */
 export const LOG_CHUNK = 100n;
 

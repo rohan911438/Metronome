@@ -29,7 +29,18 @@ const GAS_RESERVE = parseEther("0.2");
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-export function TradeTicket({ refTick, bestBid, bestAsk }: { refTick: number; bestBid?: number; bestAsk?: number }) {
+export function TradeTicket({
+  refTick,
+  bestBid,
+  bestAsk,
+  band,
+}: {
+  refTick: number;
+  bestBid?: number;
+  bestAsk?: number;
+  /** Ticks an order may use (the contract's price band around the last clearing price), once the market has traded. */
+  band?: [number, number];
+}) {
   const { trader } = useWallet();
   const { data: bal } = useBalances(trader?.address);
   const [isBuy, setIsBuy] = useState(true);
@@ -58,12 +69,13 @@ export function TradeTicket({ refTick, bestBid, bestAsk }: { refTick: number; be
   const fee = mode === "protected" ? notional * 0.0005 : 0;
 
   const tooSmall = size > 0n && size < deployment.minOrderSize;
+  const outOfBand = !!band && tick !== undefined && (tick < band[0] || tick > band[1]);
   const quoteNeeded = parseUnits((notional + fee).toFixed(QUOTE.decimals), QUOTE.decimals);
   const baseHave = bal ? bal.base + (isLocal ? 0n : bal.mon > GAS_RESERVE ? bal.mon - GAS_RESERVE : 0n) : 0n;
   const short = bal && size > 0n ? (isBuy ? bal.quote < quoteNeeded : baseHave < size) : false;
   const lowGas = bal ? bal.mon < parseEther("0.05") : false;
   const busy = step === "wrap" || step === "approve" || step === "place" || step === "batch";
-  const canSubmit = !!trader && size > 0n && !tooSmall && !short && tick !== undefined && !busy && !lowGas;
+  const canSubmit = !!trader && size > 0n && !tooSmall && !short && tick !== undefined && !outOfBand && !busy && !lowGas;
 
   async function submit() {
     if (!trader || tick === undefined || !bal) return;
@@ -150,11 +162,13 @@ export function TradeTicket({ refTick, bestBid, bestAsk }: { refTick: number; be
       ? { wrap: "Wrapping MON…", approve: "Approving…", place: "Placing order…", batch: "Clearing batch…" }[step as "wrap"]
       : tooSmall
         ? `Minimum ${fmtBase(deployment.minOrderSize)} MON`
-        : lowGas
-          ? "Need MON for gas"
-          : short
-            ? `Not enough ${isBuy ? QUOTE.symbol : BASE.native}`
-            : `${isBuy ? "Buy" : "Sell"} ${BASE.native}`;
+        : outOfBand
+          ? `Price must be ${fmtPrice(tickToPrice(band![0]))}–${fmtPrice(tickToPrice(band![1]))}`
+          : lowGas
+            ? "Need MON for gas"
+            : short
+              ? `Not enough ${isBuy ? QUOTE.symbol : BASE.native}`
+              : `${isBuy ? "Buy" : "Sell"} ${BASE.native}`;
 
   return (
     <section className="rounded-3xl border border-line bg-surface p-4">

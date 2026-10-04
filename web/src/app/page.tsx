@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { DepthChart } from "@/components/DepthChart";
 import { TradeTicket } from "@/components/TradeTicket";
-import { QUOTE } from "@/lib/config";
+import { PRICE_BAND, QUOTE } from "@/lib/config";
 import { useMarket } from "@/lib/hooks";
 import { fmtBase, fmtPrice, tickToPrice } from "@/lib/price";
 
@@ -36,7 +36,12 @@ export default function TradePage() {
         {error && <p className="mt-1 text-xs text-sell">RPC: {error}</p>}
       </section>
 
-      <TradeTicket refTick={refTick} bestBid={mk?.bestBid} bestAsk={mk?.bestAsk} />
+      <TradeTicket
+        refTick={refTick}
+        bestBid={mk?.bestBid}
+        bestAsk={mk?.bestAsk}
+        band={mk && mk.lastSettledBatch > 0n ? [mk.lastClearingTick - PRICE_BAND, mk.lastClearingTick + PRICE_BAND] : undefined}
+      />
 
       <section className="rounded-3xl border border-line bg-surface p-4">
         <div className="mb-2 flex items-baseline justify-between">
