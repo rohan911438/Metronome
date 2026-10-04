@@ -6,7 +6,7 @@ Metronome is a fully onchain **frequent batch auction** exchange on Monad. Every
 |---|---|---|---|---|
 | 1 | **Track 01 — Onchain Finance & Trading** (main) | $10k (1 of 3 winners, from $30k) | Applying | [01-onchain-finance-and-trading.md](01-onchain-finance-and-trading.md) |
 | 2 | **Grand Champion** (all tracks) | $25k | Auto-considered | [grand-champion.md](grand-champion.md) |
-| 3 | **Agora — Best Mobile Trading App** | $10k | Applying; paused until Agora replies about testnet AUSD (official rules copied) | [bounty-agora-mobile-trading.md](bounty-agora-mobile-trading.md) |
+| 3 | **Agora — Best Mobile Trading App** | $10k | Applying; all three requirements work on testnet (official rules copied) | [bounty-agora-mobile-trading.md](bounty-agora-mobile-trading.md) |
 | 4 | **Perpl — Best use of Perpl's API** (perps tab) | $5k | Applying (rules TBC) | [bounty-perpl.md](bounty-perpl.md) |
 | 5 | **Mera — Best Mera-Powered UX** | $2.5k | Applying (rules TBC) | [bounty-mera.md](bounty-mera.md) |
 | 6 | **Mera — One Passkey, Many Keys** | $2.5k | Applying (rules TBC) | [bounty-mera.md](bounty-mera.md) |
@@ -14,7 +14,7 @@ Metronome is a fully onchain **frequent batch auction** exchange on Monad. Every
 | 8 | **Chainlink — Best CRE workflow** | $3k | Applying (rules TBC) | [bounty-chainlink-cre.md](bounty-chainlink-cre.md) |
 | 9 | **Envio — Best Use of Envio** (indexer) | $1k | Applying (rules TBC) | [bounty-envio.md](bounty-envio.md) |
 
-**Maximum if everything lands: $64k.** Items 3–6 share one piece of work (Mera login + Perpl perps tab), and 3–4 depend on the Perpl team whitelisting our origin for API-key enrollment.
+**Maximum if everything lands: $64k.** Items 3–6 share one piece of work (Mera login + Perpl perps tab), Perpl's origin whitelist only gates in-app API-key enrollment; trading works without it (decision Oct 4 in bounty-perpl.md).
 
 **Cash prizes only.** We skip any prize paid in credits, hosting or plans: Alchemy, Mercuryo, Chainstack, Crouton, Zerion, Spectrum Nodes, ack3, and Envio's winners-only hosting perk (its $1k all-teams bounty is cash and is item 9).
 Before submitting, confirm on the dashboard that items 3–9 are paid in cash.

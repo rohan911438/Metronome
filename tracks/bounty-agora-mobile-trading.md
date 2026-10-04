@@ -27,11 +27,11 @@ We switch login from Privy to **Mera** and add a **Perpl** perps tab; Metronome 
 | Requirement | How we meet it |
 |---|---|
 | Mobile app, Mera passkey login | Metronome PWA, "Continue with Face ID" via Mera |
-| Holds and displays an AUSD balance | AUSD balance on the home screen and portfolio; AUSD is Perpl's mainnet collateral and Metronome's mainnet quote asset |
-| Executes trades through Perpl | Perps tab: orders sent through Perpl's API |
+| Holds and displays an AUSD balance | AUSD balance in the header, account sheet and portfolio; "Get 10,000 AUSD" calls Agora's testnet faucet; the same AUSD is Metronome's quote asset and Perpl's collateral (testnet too) |
+| Executes trades through Perpl | Perps tab: long/short orders sent from the passkey wallet straight to Perpl's exchange contract (live on testnet Oct 3); positions also in the portfolio |
 | Demo: passkey login → fund/view AUSD → at least one Perpl trade | Filmed on a real phone |
 
-**Open question for Agora:** is a Perpl **testnet** trade (collateral is Perpl's "USD", not AUSD) acceptable, or must the demo be on mainnet with real AUSD (min 100 AUSD deposit)?
+**Resolved (Oct 3):** Perpl's testnet collateral *is* Agora's testnet AUSD (`0xa901…22dC`), and Agora's faucet works again, so the whole flow (passkey → AUSD → Perpl trade) runs on testnet with real AUSD. Still open: whether a PWA counts as a "mobile application" (we film it installed on a real phone).
 
 ## Reference
 
