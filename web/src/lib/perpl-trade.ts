@@ -39,6 +39,22 @@ export interface PerpPosition {
   mark: bigint;
 }
 
+/** A `getPosition` result as a position, or null when there is none. */
+export function toPosition(
+  p: { positionType: number; lotLNS: bigint; pricePNS: bigint; depositCNS: bigint; pnlCNS: bigint },
+  mark: bigint,
+): PerpPosition | null {
+  if (p.lotLNS === 0n) return null;
+  return {
+    side: p.positionType === LONG ? "long" : "short",
+    lots: p.lotLNS,
+    entry: p.pricePNS,
+    deposit: p.depositCNS,
+    pnl: p.pnlCNS,
+    mark,
+  };
+}
+
 export function usePerpPosition(exchange: Address | undefined, perpId: number | undefined, accountId: bigint | undefined) {
   return useOnBlock(
     async (): Promise<PerpPosition | null> => {
@@ -48,15 +64,7 @@ export function usePerpPosition(exchange: Address | undefined, perpId: number | 
         functionName: "getPosition",
         args: [BigInt(perpId!), accountId!],
       });
-      if (p.lotLNS === 0n) return null;
-      return {
-        side: p.positionType === LONG ? "long" : "short",
-        lots: p.lotLNS,
-        entry: p.pricePNS,
-        deposit: p.depositCNS,
-        pnl: p.pnlCNS,
-        mark,
-      };
+      return toPosition(p, mark);
     },
     [exchange, perpId, accountId],
     !!exchange && perpId !== undefined && accountId !== undefined,

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { PerpsPortfolio } from "@/components/PerpsPortfolio";
 import { metronomeAbi } from "@/lib/abi";
 import { BASE, QUOTE, deployment } from "@/lib/config";
 import { useBalances, usePortfolio, type PortfolioOrder } from "@/lib/hooks";
@@ -120,6 +121,7 @@ export default function PortfolioPage() {
       <p className="px-1 text-xs text-muted">
         You never press claim: the keeper settles each batch and pays every order out, usually in the next block.
       </p>
+      <PerpsPortfolio owner={trader.address} />
     </div>
   );
 }
