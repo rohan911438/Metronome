@@ -290,6 +290,7 @@ Target: 100% line coverage on `Metronome.sol` and the libs.
 - `ReentrancyGuard` on every state-changing entry point, checks-effects-interactions, SafeERC20.
 - Fee-on-transfer and rebasing tokens aren't supported (only WMON and AUSD are listed).
 - Minimum order size, to limit griefing by spamming thousands of ticks and making settle expensive.
+- **Price band (added Oct 4, security review).** Resting pools live until filled or cancelled, and settle used to read every live pool tick. With a 1-MON minimum (~$0.03), an attacker could spread ~1,500 resting orders over distinct ticks and push settle past Monad's per-transaction gas limit; then no batch could settle and every open order (cancel settles first) would be stuck. Now, once the market has traded, orders must be within `PRICE_BAND` = 128 ticks (~13.7%) of the last clearing price, and settle only reads pools inside that band; pools outside it wait until the price comes back. Worst case (every band tick holding a pool, cold storage) is ~2.2M gas on Ethereum's schedule, ~9M on Monad, and it no longer grows with the number of pools (`test/PriceBand.t.sol`). Before the first trade there is no band, so deploy and seed a first trade in one go. The live testnet market (`0x99E4…`) predates this change.
 - Oracle: staleness check and deviation bound. If the oracle is unset, the guard is off.
 - Owner can pause placing orders. **Claims always keep working**, so funds can't get stuck.
 

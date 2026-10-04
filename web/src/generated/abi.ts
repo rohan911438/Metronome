@@ -114,6 +114,19 @@ export const metronomeAbi = [
   },
   {
     "type": "function",
+    "name": "PRICE_BAND",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "PRICE_MIN",
     "inputs": [],
     "outputs": [
@@ -1342,6 +1355,22 @@ export const metronomeAbi = [
       },
       {
         "name": "minSize",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "OutsidePriceBand",
+    "inputs": [
+      {
+        "name": "tick",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "lastClearingTick",
         "type": "uint256",
         "internalType": "uint256"
       }

@@ -91,7 +91,8 @@ Solo build. Design: [`architecture.md`](architecture.md). Submission target **Oc
 - [x] Oct 4: mainnet fork test (`test/MainnetFork.t.sol`, real WMON + real AUSD, runs when `MONAD_RPC_URL` is set): resting ask + taker buy + taker sell, exact payouts, nothing left behind. Mainnet deploy dry run: ~1.42 MON gas (`REF_PRICE_E18` required on mainnet, WMON default verified)
 
 ### Phase 6 — Ship (Oct 11–12)
-- [ ] Oct 11: security self-review (checklist in architecture §7, incl. a fork test against real WMON/AUSD), mainnet deploy + verify, seed liquidity, point the indexer and app at mainnet → M5
+- [x] Oct 4: security self-review found a settle-gas griefing path (resting pools on ~1,500 ticks could freeze settlement); fixed with a moving price band (architecture §7, 6 new tests). Fork test against real WMON/AUSD done
+- [ ] Oct 11: mainnet deploy + verify, seed a first trade right away (the band starts then), point the indexer and app at mainnet → M5
 - [ ] Oct 11: if Agora needs mainnet: fund a demo account with ≥100 AUSD + MON (user), do the Perpl mainnet trade on camera
 - [ ] Oct 11: record the demo video (early, in case testnet/mainnet is unstable later)
 - [ ] Oct 12: README (problem, why Monad, diagram, addresses, tests, gas, benchmark, radar findings, indexer GraphQL example, Mera keys, Perpl flow, how to run); submit; opt in to Agora, Perpl, Mera ×2, Nansen, Chainlink, Envio → M6

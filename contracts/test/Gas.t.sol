@@ -31,14 +31,16 @@ contract GasTest is MetronomeTestBase {
     }
 
     function test_gas_settleScaling() public {
-        uint256[5] memory counts = [uint256(1), 10, 50, 100, 400];
+        uint256[5] memory counts = [uint256(1), 10, 50, 100, 250];
         for (uint256 c; c < counts.length; ++c) {
             uint256 b = block.number;
+            // Centered on the last clearing price, so all 250 ticks stay inside the price band.
+            uint256 center = m.lastSettledBatch() == 0 ? T : m.lastClearingTick();
             for (uint256 i; i < counts[c]; ++i) {
                 // Alternate buyers and sellers across distinct ticks so every order adds an active tick.
                 address u = i % 2 == 0 ? alice : bob;
                 vm.prank(u);
-                m.placeOrder(i % 2 == 0, uint16(T - 200 + i), 1e18, false);
+                m.placeOrder(i % 2 == 0, uint16(center - 125 + i), 1e18, false);
             }
             _next();
             uint256 g = gasleft();

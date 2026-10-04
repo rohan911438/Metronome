@@ -61,6 +61,7 @@ interface IMetronome {
     error NotResting(bytes32 orderId);
     error OrderTooSmall(uint256 size, uint256 minSize);
     error ZeroEscrow();
+    error OutsidePriceBand(uint256 tick, uint256 lastClearingTick);
 
     /// @notice Places an order in the current block's batch and escrows the funds it needs.
     /// @param isBuy true to buy base with quote, false to sell base for quote.

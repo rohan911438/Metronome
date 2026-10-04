@@ -56,6 +56,18 @@ library TickBitmap {
         }
     }
 
+    /// @notice Like orInto, but only the ticks in [lo, hi]. Reads at most the words that range spans.
+    function orIntoRange(Map storage self, uint256[NUM_WORDS] memory acc, uint256 lo, uint256 hi) internal view {
+        uint256 summary = self.summary;
+        for (uint256 i = lo >> 8; i <= hi >> 8; ++i) {
+            if ((summary >> i) & 1 == 0) continue;
+            uint256 mask = type(uint256).max;
+            if (i == lo >> 8) mask &= type(uint256).max << (lo & 0xff);
+            if (i == hi >> 8) mask &= type(uint256).max >> (255 - (hi & 0xff));
+            acc[i] |= self.words[i] & mask;
+        }
+    }
+
     /// @notice Index of the lowest set bit of `x`. `x` must be non-zero.
     function lowestBit(uint256 x) internal pure returns (uint256 r) {
         // Isolate the lowest set bit, then take its log2 with a binary search.

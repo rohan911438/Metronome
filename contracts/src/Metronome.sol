@@ -42,6 +42,12 @@ contract Metronome is IMetronome, Ownable2Step, Pausable, ReentrancyGuardTransie
     uint256 internal constant ACC = 1e36; // accumulator scale
     /// @dev A pool whose shares outgrow its remaining size by this factor is frozen, bounding share inflation.
     uint256 internal constant MAX_SHARE_RATIO = 1e12;
+    /// @notice Once the market has traded, orders must be within this many ticks (~13.7%) of the last clearing price,
+    ///         and only resting pools inside that band take part in a batch (the others wait until the price returns).
+    /// @dev Bounds the work of settle no matter how many pools exist: without it, 1-MON resting orders spread over
+    ///      ~1,500 ticks could push settle past the per-transaction gas limit and freeze the market. The band moves
+    ///      with the price, like an exchange's price limits.
+    uint256 public constant PRICE_BAND = 128;
 
     struct Level {
         uint128 buy;
@@ -181,6 +187,10 @@ contract Metronome is IMetronome, Ownable2Step, Pausable, ReentrancyGuardTransie
     {
         if (tick > TickMath.MAX_TICK) revert TickMath.TickOutOfRange(tick);
         if (size < MIN_ORDER_SIZE) revert OrderTooSmall(size, MIN_ORDER_SIZE);
+        if (lastSettledBatch != 0) {
+            (uint256 lo, uint256 hi) = _band();
+            if (tick < lo || tick > hi) revert OutsidePriceBand(tick, lastClearingTick);
+        }
 
         uint128 escrow = size;
         if (isBuy) escrow = (resting ? restingBuyEscrow(size, tick) : quoteBuyEscrow(size, tick)).toUint128();
@@ -428,9 +438,15 @@ contract Metronome is IMetronome, Ownable2Step, Pausable, ReentrancyGuardTransie
             if (bt[i].restSell > 0) _join(batchId, false, bt[i].tick, bt[i].restSell);
         }
 
-        // 2. Clear takers + pools together.
-        _buyPoolTicks.orInto(words);
-        _sellPoolTicks.orInto(words);
+        // 2. Clear takers + pools together: every pool before the first trade, then the pools inside the price band.
+        if (lastSettledBatch == 0) {
+            _buyPoolTicks.orInto(words);
+            _sellPoolTicks.orInto(words);
+        } else {
+            (uint256 lo, uint256 hi) = _band();
+            _buyPoolTicks.orIntoRange(words, lo, hi);
+            _sellPoolTicks.orIntoRange(words, lo, hi);
+        }
         (uint16[] memory ticks, uint256[] memory buys, uint256[] memory sells) = _mergeWithPools(bt, words);
         ClearingLib.Result memory c = ClearingLib.clear(ticks, buys, sells);
 
@@ -675,6 +691,13 @@ contract Metronome is IMetronome, Ownable2Step, Pausable, ReentrancyGuardTransie
         return ClearingLib.Result({
             clearingTick: r.clearingTick, rationed: r.rationed, volume: r.volume, fillNum: r.fillNum, fillDen: r.fillDen
         });
+    }
+
+    /// @dev Ticks within PRICE_BAND of the last clearing price, clamped to the grid.
+    function _band() internal view returns (uint256 lo, uint256 hi) {
+        uint256 ref = lastClearingTick;
+        lo = ref > PRICE_BAND ? ref - PRICE_BAND : 0;
+        hi = Math.min(ref + PRICE_BAND, TickMath.MAX_TICK);
     }
 
     function _fee(uint256 amount) internal view returns (uint256) {
