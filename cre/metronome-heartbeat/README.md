@@ -21,7 +21,7 @@ too far from MON/USD is voided and refunded. On mainnet (WMON/AUSD) that's the i
 as simulations, so the price isn't kept fresh and the guard stays off; the market maker bot still centers its quotes
 on the CRE price whenever it is under 15 minutes old.
 
-`settle` is permissionless, so the receiver adds no new power. It only accepts reports from the forwarder, ignores
+`settle` is permissionless, so the receiver adds no new power. It only accepts reports from the forwarder (and, once `setWorkflowOwner` is set, only from workflows our account owns: the forwarder checks DON signatures, but any workflow can target any receiver), ignores
 prices that are older than the stored one or dated in the future, and any settle reward the market pays lands there for
 the owner to sweep.
 
@@ -65,8 +65,8 @@ submission evidence.
 ## Gas
 
 Monad charges for the gas **limit**, not the gas used, so each report's limit is sized from an estimate: the workflow
-reads the receiver's `forwarder()` and estimates `onReport("", report)` as that address (the only caller the receiver
-accepts), then uses **estimate × 2 + `gasOverhead` (250k)**, capped at `gasLimit` (4M). An estimate that reverts stops the
+reads the receiver's `forwarder()` and estimates `onReport(metadata, report)` as that address (the only caller the receiver
+accepts), with metadata carrying the receiver's `workflowOwner()` so its owner check passes, then uses **estimate × 2 + `gasOverhead` (250k)**, capped at `gasLimit` (4M). An estimate that reverts stops the
 run before anything is written.
 
 Why: a flat 1.5M limit ran out on Oct 3 on a batch where four resting orders joined fresh pools (receiver estimate ~1.02M;

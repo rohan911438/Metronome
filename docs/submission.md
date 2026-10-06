@@ -30,7 +30,7 @@ accounts.
 | 9 | Keys panel: one passkey → wallet, sub-accounts, Perpl key, vault key; switch sub-account | one passkey, many keys | Mera Many Keys |
 | 10 | Terminal: `cre workflow simulate … --broadcast` → tx on monadscan settling a batch + MON/USD | CRE as the heartbeat | Chainlink |
 | 11 | `/stats` (from the Envio indexer on testnet) and `/radar` (Nansen: 5 bots = 75% of WMON trades) | data layer | Envio, Nansen |
-| 12 | 10 s close: tests (105 Foundry + 7 Go), benchmark, "built for Monad" | credibility | Grand Champion |
+| 12 | 10 s close: tests (112 Foundry + 7 Go), benchmark, "built for Monad" | credibility | Grand Champion |
 
 Record shots 1–9 on the phone (screen recording), 10–12 on the laptop.
 
@@ -38,7 +38,7 @@ Record shots 1–9 on the phone (screen recording), 10–12 on the laptop.
 
 - **Track 01 / Grand Champion:** A fully onchain frequent batch auction: all orders in a Monad block clear at one
   uniform price, so sandwiching and front-running have nothing to extract (live lab: −5.27% on an AMM, 0% on Metronome).
-  Resting maker orders in per-price pools, 105 Foundry tests with differential fuzzing and invariants, keeper and
+  Resting maker orders in per-price pools, 112 Foundry tests with differential fuzzing and invariants, keeper and
   market-maker bots, and a benchmark of how sharding interacts with Monad's parallel execution.
 - **Agora:** Mobile PWA: Mera passkey login, AUSD balance (Agora faucet in one tap), Metronome spot trades quoted in
   AUSD and Perpl perp trades collateralised in AUSD, all from one passkey wallet with no popups.

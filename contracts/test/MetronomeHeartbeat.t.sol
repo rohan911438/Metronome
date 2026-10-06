@@ -96,6 +96,41 @@ contract MetronomeHeartbeatTest is MetronomeTestBase {
         _report(1);
     }
 
+    function _meta(address author) internal pure returns (bytes memory) {
+        return abi.encodePacked(bytes32(uint256(7)), bytes10("heartbeat"), author);
+    }
+
+    function test_workflowOwnerCheck() public {
+        address me = makeAddr("me");
+        address stranger = makeAddr("stranger");
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, alice));
+        vm.prank(alice);
+        hb.setWorkflowOwner(me);
+
+        vm.prank(owner);
+        hb.setWorkflowOwner(me);
+        vm.warp(1000);
+
+        vm.expectRevert(abi.encodeWithSelector(MetronomeHeartbeat.WrongWorkflowOwner.selector, stranger));
+        vm.prank(forwarder);
+        hb.onReport(_meta(stranger), abi.encode(uint256(0), int256(9e8), uint256(999)));
+
+        vm.expectRevert(abi.encodeWithSelector(MetronomeHeartbeat.WrongWorkflowOwner.selector, address(0)));
+        vm.prank(forwarder);
+        hb.onReport("", abi.encode(uint256(0), int256(9e8), uint256(999)));
+
+        vm.prank(forwarder);
+        hb.onReport(_meta(me), abi.encode(uint256(0), int256(3e6), uint256(999)));
+        assertEq(hb.price(), 3e6);
+
+        // Turning the check off accepts any workflow again (simulations through the mock forwarder).
+        vm.prank(owner);
+        hb.setWorkflowOwner(address(0));
+        vm.prank(forwarder);
+        hb.onReport(_meta(stranger), abi.encode(uint256(0), int256(4e6), uint256(1000)));
+        assertEq(hb.price(), 4e6);
+    }
+
     // ------------------------------------------------------------------ CRE price feed
 
     function _priceReport(uint256 batchId, int256 price, uint256 observedAt) internal {

@@ -48,6 +48,8 @@ var (
 	priceUpdatedAtSelector = common.FromHex("0xb11c4eec")
 	// forwarder() on MetronomeHeartbeat: the only address allowed to call onReport.
 	forwarderSelector = common.FromHex("0xf645d4f9")
+	// workflowOwner() on MetronomeHeartbeat: the workflow owner whose reports it accepts, or 0 for any.
+	workflowOwnerSelector = common.FromHex("0xd8f52bad")
 	// onReport(bytes metadata, bytes report) on MetronomeHeartbeat.
 	onReportSelector = common.FromHex("0x805f2132")
 )
@@ -243,7 +245,17 @@ func reportGasLimit(runtime cre.Runtime, client *evm.Client, config *Config, pay
 	if err != nil {
 		return 0, fmt.Errorf("decode forwarder(): %w", err)
 	}
-	args, err := bytesPair.Pack([]byte{}, payload)
+	// The forwarder prepends metadata (workflowId 32 bytes, name 10, owner 20). Estimate with the owner the receiver
+	// expects so its owner check passes; a receiver without the check (older testnet deploys) ignores the metadata.
+	metadata := make([]byte, 62)
+	if r, err := client.CallContract(runtime, &evm.CallContractRequest{
+		Call: &evm.CallMsg{To: common.HexToAddress(config.HeartbeatAddress).Bytes(), Data: workflowOwnerSelector},
+	}).Await(); err == nil {
+		if o, err := addressArgs.Unpack(r.Data); err == nil {
+			copy(metadata[42:], o[0].(common.Address).Bytes())
+		}
+	}
+	args, err := bytesPair.Pack(metadata, payload)
 	if err != nil {
 		return 0, err
 	}

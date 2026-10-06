@@ -140,11 +140,11 @@ One main track, plus sponsor bounties that the same product qualifies for. Detai
 | **Grand Champion** | The same project (considered automatically) | — |
 | **Mera — Best Mera-Powered UX** | Face ID login, popup-free signing in the app | Integrated |
 | **Mera — One Passkey, Many Keys** | One passkey derives the wallet key, sub-accounts, the Perpl API key and an encryption key | Integrated |
-| **Envio — Best Use of Envio** | Indexer behind the Stats page and portfolio history | Integrated; runs on testnet (public RPCs, no token needed) |
-| **Perpl — Best use of Perpl's API** | Perps tab: market data, account setup and trading in-app | Integrated; account + long/short trades live on testnet |
+| **Envio — Best Use of Envio** | Indexer behind the Stats page and portfolio history | Integrated; runs on testnet (public RPCs, no token needed). Partial for the hosted demo until the indexer has a public URL |
+| **Perpl — Best use of Perpl's API** | Perps tab: market data, account setup and trading in-app | Partial: market data over the API, account + long/short trades on the exchange contract live on testnet; API-key enrollment and API order entry wait on Perpl's origin whitelist |
 | **Agora — Best Mobile Trading App** | Mobile app: passkey login, AUSD balance, Metronome and Perpl trades | Passkey → AUSD (faucet button) → Perpl trade works on testnet; filming on a real phone next |
 | **Chainlink — Best CRE workflow** | CRE workflow that settles batches and brings MON/USD from an external API on-chain | Built; settle + price reports live on testnet via `simulate --broadcast` (accepted for the bounty) |
-| **Nansen — Best use of Nansen** | MEV radar on Monad mainnet: who trades WMON (bots vs. everyone else) and verified sandwiches, from Nansen trades and labels | Built; first findings on `/radar` |
+| **Nansen — Best use of Nansen** | MEV radar on Monad mainnet: who trades WMON (bots vs. everyone else) and verified sandwiches, from Nansen trades and labels | Built; first findings on `/radar` (snapshot from `pnpm radar`; Nansen labels skipped on the free plan's credits) |
 
 ## Integrations
 
@@ -194,7 +194,7 @@ Metronome is meant to be **infrastructure**, not a single app:
 | Mainnet readiness: fork test against real WMON + AUSD, deploy script (K=4) dry-run | Oct 11 | ✅ Oct 4 |
 | Monad mainnet deploy | Oct 11 | ⏳ needs ~3 MON + seed liquidity on mainnet |
 
-**Tests:** 105 Foundry tests (unit, differential fuzz, invariants, gas and shard benchmarks, and a fork test against real mainnet WMON and AUSD) and 7 Go workflow tests, all run in CI (the fork test needs `MONAD_RPC_URL`).
+**Tests:** 112 Foundry tests (unit, differential fuzz, invariants, gas and shard benchmarks, and a fork test against real mainnet WMON and AUSD) and 7 Go workflow tests, all run in CI (the fork test needs `MONAD_RPC_URL`).
 
 **Monad testnet contracts**
 

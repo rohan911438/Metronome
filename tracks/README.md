@@ -2,17 +2,20 @@
 
 Metronome is a fully onchain **frequent batch auction** exchange on Monad. Every block, all orders clear at one uniform price, so front-running and sandwiching don't work.
 
-| # | Prize | Amount | Status | File |
-|---|---|---|---|---|
-| 1 | **Track 01 — Onchain Finance & Trading** (main) | $10k (1 of 3 winners, from $30k) | Applying | [01-onchain-finance-and-trading.md](01-onchain-finance-and-trading.md) |
-| 2 | **Grand Champion** (all tracks) | $25k | Auto-considered | [grand-champion.md](grand-champion.md) |
-| 3 | **Agora — Best Mobile Trading App** | $10k | Applying; all three requirements work on testnet (official rules copied) | [bounty-agora-mobile-trading.md](bounty-agora-mobile-trading.md) |
-| 4 | **Perpl — Best use of Perpl's API** (perps tab) | $5k | Applying (rules TBC) | [bounty-perpl.md](bounty-perpl.md) |
-| 5 | **Mera — Best Mera-Powered UX** | $2.5k | Applying (rules TBC) | [bounty-mera.md](bounty-mera.md) |
-| 6 | **Mera — One Passkey, Many Keys** | $2.5k | Applying (rules TBC) | [bounty-mera.md](bounty-mera.md) |
-| 7 | **Nansen — Best use of Nansen** (MEV radar) | $5k | Applying (rules TBC) | [bounty-nansen.md](bounty-nansen.md) |
-| 8 | **Chainlink — Best CRE workflow** | $3k | Applying (rules TBC) | [bounty-chainlink-cre.md](bounty-chainlink-cre.md) |
-| 9 | **Envio — Best Use of Envio** (indexer) | $1k | Applying (rules TBC) | [bounty-envio.md](bounty-envio.md) |
+| # | Prize | Amount | Integration (audited Oct 6) | What is still missing | File |
+|---|---|---|---|---|---|
+| 1 | **Track 01 — Onchain Finance & Trading** (main) | $10k (1 of 3 winners, from $30k) | ✅ **Full** on testnet: contracts (112 tests), app, keeper/MM/taker bots, local e2e | Mainnet deploy (needs ~3 MON from the user), hosted app URL, demo video | [01-onchain-finance-and-trading.md](01-onchain-finance-and-trading.md) |
+| 2 | **Grand Champion** (all tracks) | $25k | Auto-considered | Same as #1 | [grand-champion.md](grand-champion.md) |
+| 3 | **Agora — Best Mobile Trading App** | $10k | ✅ **Full** on testnet: Mera passkey → AUSD balance + faucet → Perpl trade (official rules copied) | Film on a real phone; open question whether a PWA counts as a "mobile application" | [bounty-agora-mobile-trading.md](bounty-agora-mobile-trading.md) |
+| 4 | **Perpl — Best use of Perpl's API** | $5k | 🟡 **Partial**: market data over Perpl's REST API, account + trades on Perpl's exchange contract, pasted API key checked with a signed request | In-app API-key enrollment and order entry over the API (blocked on Perpl whitelisting our origin) | [bounty-perpl.md](bounty-perpl.md) |
+| 5 | **Mera — Best Mera-Powered UX** | $2.5k | ✅ **Full**: Face ID login, popup-free signing | Real-phone test | [bounty-mera.md](bounty-mera.md) |
+| 6 | **Mera — One Passkey, Many Keys** | $2.5k | ✅ **Full**: one passkey → wallet, sub-accounts, Perpl Ed25519 key, device vault key | — | [bounty-mera.md](bounty-mera.md) |
+| 7 | **Nansen — Best use of Nansen** (MEV radar) | $5k | 🟡 **Partial**: `/radar` on mainnet data from Nansen DEX trades + first funders | Labels skipped (credit cost on the free plan); radar is a snapshot (`pnpm radar`), not live | [bounty-nansen.md](bounty-nansen.md) |
+| 8 | **Chainlink — Best CRE workflow** | $3k | ✅ **Full via simulation**: settle + MON/USD reports written on testnet with `simulate --broadcast` (accepted by the rules) | Deploy on Chainlink's network (deploy access "Not enabled", only Chainlink can switch it on) | [bounty-chainlink-cre.md](bounty-chainlink-cre.md) |
+| 9 | **Envio — Best Use of Envio** (indexer) | $1k | 🟡 **Partial for the live demo**: indexer runs on testnet in Docker on this machine; Stats + portfolio history use it | A public indexer URL (`NEXT_PUBLIC_INDEXER_URL`) for the hosted app, otherwise `/stats` says "not configured" | [bounty-envio.md](bounty-envio.md) |
+
+Legend: ✅ full = everything the bounty asks for runs; 🟡 partial = submittable, but part of the integration depends on someone else (sponsor whitelist, credits, hosting).
+Sponsor rules for #4–9 are still "TBC" in their files (only on the logged-in dashboard); Agora's and Chainlink's key rules are copied.
 
 **Maximum if everything lands: $64k.** Items 3–6 share one piece of work (Mera login + Perpl perps tab), Perpl's origin whitelist only gates in-app API-key enrollment; trading works without it (decision Oct 4 in bounty-perpl.md).
 

@@ -40,12 +40,13 @@ var (
 // block is head, and every report written is recorded. onReportOK decides whether onReport succeeds; a successful
 // report settles the pending batch unless silentFailure is set (the forwarder swallowed an out-of-gas receiver).
 var (
-	silentFailure bool
-	testForwarder        = common.HexToAddress("0xB9F79d863261869B234c481D1f9A7af84AeAd192")
-	estimateGas   uint64 = 100_000
-	estimateErr   error
-	estimates     [][]byte // report payloads seen by EstimateGas
-	gasLimits     []uint64 // gas limits of written reports
+	silentFailure     bool
+	testForwarder            = common.HexToAddress("0xB9F79d863261869B234c481D1f9A7af84AeAd192")
+	testWorkflowOwner        = common.HexToAddress("0x0D350bc1b4102732cFe243f80fe693f428572373")
+	estimateGas       uint64 = 100_000
+	estimateErr       error
+	estimates         [][]byte // report payloads seen by EstimateGas
+	gasLimits         []uint64 // gas limits of written reports
 )
 
 func newChain(t *testing.T, pending, updatedAt, head int64, onReportOK bool) *[][]byte {
@@ -73,6 +74,11 @@ func newChain(t *testing.T, pending, updatedAt, head int64, onReportOK bool) *[]
 			out, err := addressArgs.Pack(testForwarder)
 			require.NoError(t, err)
 			return &evm.CallContractReply{Data: out}, nil
+		case common.BytesToAddress(in.Call.To) == common.HexToAddress(testConfig.HeartbeatAddress) &&
+			common.Bytes2Hex(in.Call.Data) == common.Bytes2Hex(workflowOwnerSelector):
+			out, err := addressArgs.Pack(testWorkflowOwner)
+			require.NoError(t, err)
+			return &evm.CallContractReply{Data: out}, nil
 		default:
 			t.Fatalf("unexpected call to %x: %x", in.Call.To, in.Call.Data)
 		}
@@ -84,13 +90,14 @@ func newChain(t *testing.T, pending, updatedAt, head int64, onReportOK bool) *[]
 		return &evm.HeaderByNumberReply{Header: &evm.Header{BlockNumber: pb.NewBigIntFromInt(big.NewInt(head))}}, nil
 	}
 	chain.EstimateGas = func(_ context.Context, in *evm.EstimateGasRequest) (*evm.EstimateGasReply, error) {
-		// Estimated as the forwarder, against the receiver, with onReport("", payload).
+		// Estimated as the forwarder, against the receiver, with onReport(metadata naming the workflow owner, payload).
 		require.Equal(t, testForwarder.Bytes(), in.Msg.From)
 		require.Equal(t, common.HexToAddress(testConfig.HeartbeatAddress).Bytes(), in.Msg.To)
 		require.Equal(t, common.Bytes2Hex(onReportSelector), common.Bytes2Hex(in.Msg.Data[:4]))
 		args, err := bytesPair.Unpack(in.Msg.Data[4:])
 		require.NoError(t, err)
-		require.Empty(t, args[0])
+		require.Len(t, args[0], 62)
+		require.Equal(t, testWorkflowOwner.Bytes(), args[0].([]byte)[42:])
 		estimates = append(estimates, args[1].([]byte))
 		if estimateErr != nil {
 			return nil, estimateErr
