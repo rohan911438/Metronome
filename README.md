@@ -140,7 +140,7 @@ One main track, plus sponsor bounties that the same product qualifies for. Detai
 | **Grand Champion** | The same project (considered automatically) | — |
 | **Mera — Best Mera-Powered UX** | Face ID login, popup-free signing in the app | Integrated |
 | **Mera — One Passkey, Many Keys** | One passkey derives the wallet key, sub-accounts, the Perpl API key and an encryption key | Integrated |
-| **Envio — Best Use of Envio** | Indexer behind the Stats page and portfolio history | Integrated; runs on testnet (public RPCs, no token needed). Partial for the hosted demo until the indexer has a public URL |
+| **Envio — Best Use of Envio** | Indexer behind the Stats page and portfolio history | Integrated; hosted on Envio Cloud over HyperSync, public GraphQL: https://indexer.dev.hyperindex.xyz/5cebe67/v1/graphql |
 | **Perpl — Best use of Perpl's API** | Perps tab: market data, account setup and trading in-app | Partial: market data over the API, account + long/short trades on the exchange contract live on testnet; API-key enrollment and API order entry wait on Perpl's origin whitelist |
 | **Agora — Best Mobile Trading App** | Mobile app: passkey login, AUSD balance, Metronome and Perpl trades | Passkey → AUSD (faucet button) → Perpl trade works on testnet; filming on a real phone next |
 | **Chainlink — Best CRE workflow** | CRE workflow that settles batches and brings MON/USD from an external API on-chain | Built; settle + price reports live on testnet via `simulate --broadcast` (accepted for the bounty) |
@@ -152,7 +152,7 @@ One main track, plus sponsor bounties that the same product qualifies for. Detai
 |---|---|---|
 | **Monad** | Execution layer: 300 ms batches, parallel execution, cheap clearing | ✅ Live on testnet |
 | **Mera** | Passkey login; one passkey derives the wallet key, the Perpl API key and a device encryption key; popup-free signing | ✅ In the app |
-| **Envio** | HyperIndex indexer ([`indexer/`](indexer/README.md)) behind the Stats page; totals checked against raw chain logs | ✅ Local chain and testnet |
+| **Envio** | HyperIndex indexer ([`indexer/`](indexer/README.md)) behind the Stats page; totals checked against raw chain logs | ✅ Hosted on Envio Cloud (Monad testnet, HyperSync); also runs locally in Docker |
 | **Perpl** | Perps tab: live markets, candles and order book; open a Perpl account (approve, deposit, one-click trading) from the passkey wallet; paste an API key, stored encrypted with the passkey | ✅ Data, account setup and trading, live on testnet |
 | **Agora AUSD faucet** | "Get 10,000 AUSD" button in the app calls Agora's testnet faucet; the same AUSD funds a Perpl account | ✅ Testnet |
 | **AUSD** ([Agora](https://www.agora.finance)) | Quote asset of the mainnet market and Perpl collateral | ⏳ Mainnet |

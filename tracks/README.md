@@ -12,9 +12,9 @@ Metronome is a fully onchain **frequent batch auction** exchange on Monad. Every
 | 6 | **Mera — One Passkey, Many Keys** | $2.5k | ✅ **Full**: one passkey → wallet, sub-accounts, Perpl Ed25519 key, device vault key | — | [bounty-mera.md](bounty-mera.md) |
 | 7 | **Nansen — Best use of Nansen** (MEV radar) | $5k | 🟡 **Partial**: `/radar` on mainnet data from Nansen DEX trades + first funders | Labels skipped (credit cost on the free plan); radar is a snapshot (`pnpm radar`), not live | [bounty-nansen.md](bounty-nansen.md) |
 | 8 | **Chainlink — Best CRE workflow** | $3k | ✅ **Full via simulation**: settle + MON/USD reports written on testnet with `simulate --broadcast` (accepted by the rules) | Deploy on Chainlink's network (deploy access "Not enabled", only Chainlink can switch it on) | [bounty-chainlink-cre.md](bounty-chainlink-cre.md) |
-| 9 | **Envio — Best Use of Envio** (indexer) | $1k | 🟡 **Partial for the live demo**: indexer runs on testnet in Docker on this machine; Stats + portfolio history use it | A public indexer URL (`NEXT_PUBLIC_INDEXER_URL`) for the hosted app, otherwise `/stats` says "not configured" | [bounty-envio.md](bounty-envio.md) |
+| 9 | **Envio — Best Use of Envio** (indexer) | $1k | ✅ **Full**: hosted on Envio Cloud (HyperSync, synced in 1 min), public GraphQL https://indexer.dev.hyperindex.xyz/5cebe67/v1/graphql; Stats + portfolio history read it; 15/15 orders match on-chain nonces | Dev plan deployment expires ~Nov 5 (30 days); redeploy = new URL in `web/src/lib/indexer.ts` | [bounty-envio.md](bounty-envio.md) |
 
-Legend: ✅ full = everything the bounty asks for runs; 🟡 partial = submittable, but part of the integration depends on someone else (sponsor whitelist, credits, hosting).
+Legend: ✅ full = everything the bounty asks for runs; 🟡 partial = submittable, but part of the integration depends on someone else (sponsor whitelist, credits).
 Sponsor rules for #4–9 are still "TBC" in their files (only on the logged-in dashboard); Agora's and Chainlink's key rules are copied.
 
 **Maximum if everything lands: $64k.** Items 3–6 share one piece of work (Mera login + Perpl perps tab), Perpl's origin whitelist only gates in-app API-key enrollment; trading works without it (decision Oct 4 in bounty-perpl.md).

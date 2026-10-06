@@ -5,7 +5,7 @@
 
 ## Open questions
 - [x] HyperSync supports Monad testnet (`monad-testnet.hypersync.xyz`, at chain head on Sep 26) and mainnet. Outside Envio Cloud it needs a free API token (`ENVIO_API_TOKEN`)
-- [ ] Is hosting on Envio Cloud required, or is a self-run indexer enough?
+- [x] Is hosting on Envio Cloud required, or is a self-run indexer enough? Moot: it is hosted on Envio Cloud since Oct 6
 
 ## Status (Sep 26)
 Built and running against the local Anvil stack (see `indexer/README.md`), feeding the `/stats` page. Next: a token or Envio Cloud for testnet.
@@ -38,3 +38,10 @@ The app keeps working without the indexer: every page falls back to plain RPC re
 - Checked: 12 orders indexed = 12 on-chain nonces (deployer 9, taker 3). `/stats` renders volume, clearing prices, gas per action and keepers from it.
 - The portfolio now reads order times, tx links and payouts from the indexer, falling back to RPC.
 - Fix found on the way: the slim Node image has no CA certificates, so Envio's native HTTP client failed TLS; the Dockerfile installs `ca-certificates`.
+
+## Status (Oct 6): hosted on Envio Cloud
+- Public GraphQL: https://indexer.dev.hyperindex.xyz/5cebe67/v1/graphql (development plan, deployment of commit `0b3b812`, region EU, source HyperSync; first sync 1 minute, 62 events from both market addresses).
+- Envio Cloud settings: indexer directory `indexer`, config `config.yaml`, release branch `envio` (push to `envio` to redeploy; keep it equal to `main`). With the default directory `./` the deploy failed with "missing envio package / Invalid version": Envio Cloud reads the envio version from that directory's package.json ([enviodev/hyperindex#1666](https://github.com/enviodev/hyperindex/issues/1666)).
+- Checked against the chain: 15 indexed orders = 15 on-chain nonces (2 traders, both markets); progress block within 4 blocks of head.
+- The web app uses it by default on testnet (`web/src/lib/indexer.ts`, overridable with `NEXT_PUBLIC_INDEXER_URL`); `/stats` renders from it in a testnet build (headless Edge check).
+- Development deployments are deleted after 30 days (this one ~Nov 5, after winners are announced Nov 3) and the plan allows 3 deployments; each redeploy gets a new URL, so update `ENVIO_CLOUD_TESTNET`. Don't "Promote" (production is paid).

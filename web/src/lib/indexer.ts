@@ -2,11 +2,16 @@
  * Reads from the Envio indexer (indexer/, served as GraphQL by Hasura). Optional: pages that use it say so when it
  * isn't configured or reachable, and the rest of the app reads the chain directly over RPC.
  *
- * NEXT_PUBLIC_INDEXER_URL sets the endpoint; on the local chain it defaults to the docker-compose Hasura.
+ * NEXT_PUBLIC_INDEXER_URL sets the endpoint. Defaults: the docker-compose Hasura on the local chain, and our Envio Cloud
+ * deployment on Monad testnet (development plan, commit 0b3b812; a redeploy gets a new URL, so update it here).
  */
-import { isLocal } from "./config";
+import { NETWORK, isFork, isLocal } from "./config";
 
-export const INDEXER_URL = process.env.NEXT_PUBLIC_INDEXER_URL || (isLocal ? "http://localhost:8080/v1/graphql" : "");
+const ENVIO_CLOUD_TESTNET = "https://indexer.dev.hyperindex.xyz/5cebe67/v1/graphql";
+
+export const INDEXER_URL =
+  process.env.NEXT_PUBLIC_INDEXER_URL ||
+  (isLocal ? "http://localhost:8080/v1/graphql" : NETWORK === "testnet" && !isFork ? ENVIO_CLOUD_TESTNET : "");
 
 export async function gql<T>(query: string): Promise<T> {
   if (!INDEXER_URL) throw new Error("No indexer configured (NEXT_PUBLIC_INDEXER_URL)");

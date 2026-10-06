@@ -33,6 +33,11 @@ docker compose down -v
 
 The web app reads `NEXT_PUBLIC_INDEXER_URL` (defaults to the local endpoint above on the local chain).
 
+## Hosted (Envio Cloud)
+
+Monad testnet, public: https://indexer.dev.hyperindex.xyz/5cebe67/v1/graphql
+Envio Cloud settings: indexer directory `indexer`, config `config.yaml`, release branch `envio` (a push to `envio` redeploys).
+
 ## Example query
 
 ```graphql
