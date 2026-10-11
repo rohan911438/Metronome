@@ -21,6 +21,7 @@ const ALLOWED = new Set([
   "eth_chainId",
   "eth_estimateGas",
   "eth_feeHistory",
+  "eth_fillTransaction", // viem tries it before filling a transaction itself
   "eth_gasPrice",
   "eth_getBalance",
   "eth_getBlockByHash",
