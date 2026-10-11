@@ -17,6 +17,8 @@ accounts.
 
 ## 2. Demo video (~3 min) shot list
 
+The full user workflow, demo setup, narration and recording checklist are in [`demo.md`](demo.md).
+
 | # | Shot | Shows | Bounty |
 |---|---|---|---|
 | 1 | 15 s pitch over the trade screen: "every Monad block is one auction; everyone gets the same price" | the problem and the idea | Track 01 |

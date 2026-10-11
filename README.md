@@ -9,7 +9,7 @@ Front-running and sandwich attacks stop working because **the order of transacti
 
 [Why](#the-problem) · [How it works](#how-it-works) · [Why Monad](#why-this-only-works-on-monad) · [Tracks](#tracks-and-bounties) · [Integrations](#integrations) · [Status](#status) · [Architecture](docs/architecture.md) · [Roadmap](docs/roadmap.md)
 
-**[Try it live → metronome-monad.vercel.app](https://metronome-monad.vercel.app)** (Monad testnet, sign in with a passkey)
+**[Try it live → metronome-monad.vercel.app](https://metronome-monad.vercel.app)** (Monad testnet, sign in with a passkey) · [Demo guide](docs/demo.md)
 
 *Built for [Monad Metropolis](https://monad.xyz/developers/hackathons/metropolis) · Track 01: Onchain Finance & Trading*
 
