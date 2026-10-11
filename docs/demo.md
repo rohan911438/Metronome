@@ -10,8 +10,9 @@ and the longer `…-rohans-projects-….vercel.app` links sit behind Vercel's lo
 | Web app (Next.js PWA) | Vercel project `metronome`, root `web/`, auto-deploys `main` | `NEXT_PUBLIC_NETWORK=testnet` |
 | Keeper (settles every batch, pays orders out) | Render free web service `metronome-keeper`, [`/health`](https://metronome-keeper.onrender.com/health) | Sleeps when idle; the open app pings it and it starts settling within ~1 min |
 | Keeper wallet | `0xF017E98A274897F499eE8D53D08C50D3Da521eAB` | Pays settle gas |
-| New-user faucet (`/api/faucet`) | Vercel route, sponsor wallet `0x8BED1F1d4299cd65eE31A3f6c2E3bd348f8457bc` | 0.1 MON for gas (once per wallet/IP per 10 min) + 10,000 AUSD from Agora's faucet (one request a minute across everyone) |
+| New-user faucet (`/api/faucet`) | Vercel route, sponsor wallet `0x8BED1F1d4299cd65eE31A3f6c2E3bd348f8457bc` | Tops a wallet up to 0.6 MON for gas when it has under 0.45 (enough for the Lab), once per wallet/IP per 10 min, + 10,000 AUSD from Agora's faucet (one request a minute across everyone). **Keep this wallet funded: each new user costs up to ~0.6 MON** |
 | Indexer (Stats, portfolio history) | Envio Cloud | Public GraphQL, see README |
+| Perpl trading API | `/api/perpl`, signed on our server with the app's API key (`PERPL_API_KEY` / `PERPL_API_SECRET`, Vercel env), Perpl account #1089 | Users never paste a key. Vercel functions run in Mumbai (`bom1`): Perpl answers US requests with HTTP 451 |
 | Demo liquidity | Deployer `0x0D35…2573` resting orders on the WMON/AUSD market | **Sell** 3 MON left at 0.03432 (for buys; 2 used in tests) · **buy** orders at 0.03429 (for sells) |
 | RPC | Browser → our `/api/rpc` proxy (server tries thirdweb → Ankr → Monad RPC, 2 s each) → public endpoints directly as backup | Public RPCs rate-limit (Monad: 15 req/s per user), hold requests or fail DNS on some networks |
 
@@ -50,9 +51,9 @@ Open https://metronome-monad.vercel.app  (phone: Share → "Add to Home Screen")
   └─ 8. STATS (Envio indexer) and RADAR (Nansen: who trades WMON on Monad mainnet)
 ```
 
-Gas a new wallet needs: about 0.044 MON for its first trade (it includes a one-time approval), less after that. The
-free 0.1 MON covers about two trades. **The Lab and Perpl each send several transactions**, so for the video, fund
-the phone's wallet with ~1 MON from faucet.monad.xyz or the deployer.
+Gas a new wallet needs: about 0.044 MON for its first trade (it includes a one-time approval), less after that; the
+Lab about 0.45 MON (it checks first and offers a top-up). The faucet button tops a wallet up to 0.6 MON, which covers
+the Lab, a few trades and opening a Perpl account.
 
 ## 3. The video (about 3 minutes)
 
