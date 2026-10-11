@@ -212,9 +212,9 @@ export function AccountSheet({ onClose }: { onClose: () => void }) {
                             headers: { "content-type": "application/json" },
                             body: JSON.stringify({ address: trader.address }),
                           });
-                          const j = (await r.json()) as { error?: string; mon?: string; ausd?: string; notes?: string[] };
+                          const j = (await r.json()) as { error?: string; mon?: string; monAmount?: string; ausd?: string; notes?: string[] };
                           if (!r.ok || j.error) throw new Error(j.error ?? `Faucet HTTP ${r.status}`);
-                          const got = [j.mon && "0.1 MON for gas", j.ausd && `10,000 ${QUOTE.symbol}`].filter(Boolean).join(" and ");
+                          const got = [j.mon && `${j.monAmount ?? "some"} MON for gas`, j.ausd && `10,000 ${QUOTE.symbol}`].filter(Boolean).join(" and ");
                           setFundNote([got && `Sent ${got}.`, ...(j.notes ?? [])].filter(Boolean).join(" "));
                         } catch (e) {
                           setFundError((e as Error).message);

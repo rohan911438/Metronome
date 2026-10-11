@@ -1,7 +1,7 @@
 /**
  * Testnet onboarding: a new passkey wallet holds no MON, so it can't pay gas for its first transaction (the RPC
  * rejects it, and viem reports "Missing or invalid parameters"). This route pays for it from our sponsor wallet:
- * a little MON for gas, and a request to Agora's AUSD faucet on the user's behalf.
+ * MON for gas, and a request to Agora's AUSD faucet on the user's behalf.
  *
  * Testnet only, and only with FAUCET_PRIVATE_KEY set (server-side, never NEXT_PUBLIC). MON is sent only to wallets
  * holding under MIN_MON, and each address and IP gets one MON drip per COOLDOWN_MS (best effort: per instance).
@@ -17,8 +17,10 @@ export const dynamic = "force-dynamic";
 
 const AUSD_FAUCET: Address = "0xd236c18D274E54FAccC3dd9DDA4b27965a73ee6C";
 const faucetAbi = parseAbi(["function requestFunds(address to)", "error MaxFrequencyExceeded()"]);
-const DRIP = parseEther("0.1");
-const MIN_MON = parseEther("0.05");
+// Top a wallet up to TARGET_MON when it holds under MIN_MON: enough for the sandwich lab (~0.45 MON: Monad bills the
+// gas limit, and its run and finish transactions reserve ~0.2 MON each), a few trades and opening a Perpl account.
+const TARGET_MON = parseEther("0.6");
+const MIN_MON = parseEther("0.45");
 const COOLDOWN_MS = 10 * 60_000;
 const seen = new Map<string, number>();
 
@@ -34,7 +36,7 @@ export async function POST(req: NextRequest) {
 
   const pub = createPublicClient({ chain: monadTestnet, transport: rpcTransport(), pollingInterval: 400 }); // Monad blocks are ~0.4 s
   const sponsor = createWalletClient({ account: privateKeyToAccount(key), chain: monadTestnet, transport: rpcTransport() });
-  const result: { mon?: string; ausd?: string; notes: string[] } = { notes: [] };
+  const result: { mon?: string; monAmount?: string; ausd?: string; notes: string[] } = { notes: [] };
 
   // Gas money first: without it the user can't do anything else.
   const monBalance = await pub.getBalance({ address });
@@ -51,9 +53,11 @@ export async function POST(req: NextRequest) {
     }
     seen.set(address.toLowerCase(), now);
     seen.set(ip, now);
-    const hash = await sponsor.sendTransaction({ to: address, value: DRIP });
+    const value = TARGET_MON - monBalance;
+    const hash = await sponsor.sendTransaction({ to: address, value });
     await pub.waitForTransactionReceipt({ hash });
     result.mon = hash;
+    result.monAmount = Number(formatEther(value)).toFixed(2);
   } else {
     result.notes.push(`Already has ${Number(formatEther(monBalance)).toFixed(3)} MON for gas.`);
   }

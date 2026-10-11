@@ -12,7 +12,6 @@ import {
   usePerplAccount,
   type SetupStep,
 } from "@/lib/perpl-account";
-import { checkApiKey, forgetApiKey, loadApiKey, parseApiKey, saveApiKey, type KeyCheck, type PerplApiKey } from "@/lib/perpl-key";
 import { fmtAmount, shortAddr } from "@/lib/price";
 import { useWallet } from "@/lib/wallet";
 
@@ -22,7 +21,7 @@ const GAS_NEEDED = parseUnits("0.1", 18);
 type StepState = { status: "pending" | "done" | "skipped"; hash?: Hex };
 
 export function PerplAccountCard({ ctx }: { ctx: PerplContext | undefined }) {
-  const { trader, keys } = useWallet();
+  const { trader } = useWallet();
   const setup = perplSetup(ctx);
   const { data: st, error } = usePerplAccount(trader?.address, setup);
   const [amount, setAmount] = useState("");
@@ -193,157 +192,54 @@ export function PerplAccountCard({ ctx }: { ctx: PerplContext | undefined }) {
         </h2>
         {body}
       </div>
-      {onPerplChain && trader && <ApiKeySection chainId={ctx.chain.chain_id} vaultKey={keys?.vaultKey} />}
+      {onPerplChain && <PerplApiSection />}
     </section>
   );
 }
 
-function ApiKeySection({ chainId, vaultKey }: { chainId: number; vaultKey?: Uint8Array }) {
-  const { trader } = useWallet();
-  const owner = trader!.address;
-  const [key, setKey] = useState<PerplApiKey | null>(null);
-  const [loaded, setLoaded] = useState(false);
-  const [check, setCheck] = useState<KeyCheck | "checking">();
-  const [token, setToken] = useState("");
-  const [secret, setSecret] = useState("");
-  const [err, setErr] = useState<string>();
-  const [adding, setAdding] = useState(false);
+/**
+ * Perpl's trading API, through the app's own key: the server signs every request (app/api/perpl), so users never make
+ * or paste a key. Shows that the API answers and which Perpl account the app's key belongs to.
+ */
+function PerplApiSection() {
+  const [state, setState] = useState<{ ok: true; account?: number; addr?: string } | { ok: false; detail: string }>();
 
   useEffect(() => {
     let alive = true;
-    setLoaded(false);
-    (vaultKey ? loadApiKey(owner, vaultKey) : Promise.resolve(null)).then((k) => {
-      if (!alive) return;
-      setKey(k);
-      setLoaded(true);
-    });
+    fetch("/api/perpl/v1/trading/wallet", { cache: "no-store" })
+      .then(async (r) => {
+        if (!r.ok) throw new Error(r.status === 503 ? "not configured" : `HTTP ${r.status}`);
+        const j = (await r.json()) as { addr?: string; as?: { id?: number }[] };
+        if (alive) setState({ ok: true, account: j.as?.[0]?.id, addr: j.addr });
+      })
+      .catch((e: Error) => alive && setState({ ok: false, detail: e.message }));
     return () => {
       alive = false;
     };
-  }, [owner, vaultKey]);
-
-  useEffect(() => {
-    if (!key) return setCheck(undefined);
-    let alive = true;
-    setCheck("checking");
-    checkApiKey(key, chainId).then((c) => alive && setCheck(c));
-    return () => {
-      alive = false;
-    };
-  }, [key, chainId]);
-
-  const save = async () => {
-    setErr(undefined);
-    try {
-      const k = parseApiKey(token, secret);
-      if (vaultKey) await saveApiKey(owner, vaultKey, k);
-      setKey(k);
-      setToken("");
-      setSecret("");
-      setAdding(false);
-    } catch (e) {
-      setErr((e as Error).message);
-    }
-  };
-
-  const status =
-    check === "checking" ? (
-      <>
-        <Dot /> Checking with Perpl…
-      </>
-    ) : check?.ok ? (
-      <>
-        <Dot tone="buy" /> Perpl accepted this key.
-      </>
-    ) : check?.reason === "rejected" ? (
-      <>
-        <Dot tone="sell" /> Perpl rejected this key (revoked, expired, or a typo in the private key).
-      </>
-    ) : check?.reason === "scope" ? (
-      <>
-        <Dot tone="sell" /> This key isn&apos;t allowed to read your account. Make one with the Trade scope.
-      </>
-    ) : check ? (
-      <>
-        <Dot tone="sell" /> Couldn&apos;t reach Perpl to check the key: {check.detail}
-      </>
-    ) : null;
+  }, []);
 
   return (
     <div className="border-t border-line pt-3">
-      <h3 className="mb-1 text-sm font-semibold text-fg">Perpl API key</h3>
-      {!loaded ? (
-        <p>Loading…</p>
-      ) : key ? (
-        <div className="space-y-1.5">
-          <p>
-            Key <span className="font-mono text-fg">{key.token.slice(0, 10)}…</span> · public key{" "}
-            <span className="font-mono text-fg">
-              {key.publicKey.slice(0, 8)}…{key.publicKey.slice(-6)}
-            </span>
-          </p>
-          <p className="flex items-center gap-1.5">{status}</p>
-          <p>{vaultKey ? "Stored encrypted with your passkey on this device." : "Test account: kept in memory only, gone on reload."}</p>
-          <button
-            onClick={() => {
-              forgetApiKey(owner);
-              setKey(null);
-            }}
-            className="text-sell underline"
-          >
-            Remove key from this device
-          </button>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          <p className="flex items-start gap-1.5">
-            <Dot tone="warn" />
+      <h3 className="mb-1 text-sm font-semibold text-fg">Perpl API</h3>
+      <p className="flex items-start gap-1.5">
+        {!state ? (
+          <>
+            <Dot /> Checking Perpl&apos;s trading API…
+          </>
+        ) : state.ok ? (
+          <>
+            <Dot tone="buy" />
             <span>
-              No API key yet. Creating one inside this app needs Perpl to allow this site (their origin whitelist), which is pending. For now, make
-              a key at{" "}
-              <a className="text-accent underline" href="https://testnet.perpl.xyz/apikeys" target="_blank" rel="noreferrer">
-                testnet.perpl.xyz/apikeys
-              </a>{" "}
-              and paste it here.
+              Connected through Metronome&apos;s API key, signed on our server{state.account ? ` (Perpl account #${state.account})` : ""}. Nothing to set
+              up: your trades go on-chain from your own wallet.
             </span>
-          </p>
-          {adding ? (
-            <div className="space-y-2">
-              <input
-                value={token}
-                onChange={(e) => setToken(e.target.value)}
-                placeholder="API key token (X-API-Key)"
-                autoComplete="off"
-                spellCheck={false}
-                className="w-full rounded-xl bg-surface-2 px-3 py-2 font-mono text-fg outline-none"
-              />
-              <input
-                value={secret}
-                onChange={(e) => setSecret(e.target.value)}
-                placeholder="Private key (64 hex characters)"
-                type="password"
-                autoComplete="off"
-                spellCheck={false}
-                className="w-full rounded-xl bg-surface-2 px-3 py-2 font-mono text-fg outline-none"
-              />
-              {err && <p className="text-sell">{err}</p>}
-              <p>{vaultKey ? "The private key is encrypted with your passkey before it's saved, and never leaves this device." : "Test account: the key is kept in memory only."}</p>
-              <div className="flex gap-2">
-                <button onClick={save} className="flex-1 rounded-2xl btn-primary py-2 text-sm font-medium">
-                  Save key
-                </button>
-                <button onClick={() => setAdding(false)} className="rounded-2xl bg-surface-2 px-4 py-2 text-sm text-fg">
-                  Cancel
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button onClick={() => setAdding(true)} className="w-full rounded-2xl bg-surface-2 py-2 text-sm text-fg">
-              Paste a Perpl API key
-            </button>
-          )}
-        </div>
-      )}
+          </>
+        ) : (
+          <>
+            <Dot tone="sell" /> Perpl&apos;s trading API is unreachable right now ({state.detail}). Trading still works on-chain.
+          </>
+        )}
+      </p>
     </div>
   );
 }

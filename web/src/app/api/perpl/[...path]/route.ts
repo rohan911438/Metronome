@@ -6,6 +6,9 @@
  * Public responses are cached for a moment, so any number of open apps cost Perpl one upstream request per path per
  * TTL.
  */
+import { ed25519 } from "@noble/curves/ed25519.js";
+import { sha256 } from "@noble/hashes/sha2.js";
+import { bytesToHex, hexToBytes } from "@noble/hashes/utils.js";
 import type { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -57,17 +60,34 @@ const json = (body: string, status = 200, stale = false) =>
   });
 
 /**
- * Read-only account paths, signed in the browser with the user's API key (see lib/perpl-key.ts). The signature headers
- * are passed through untouched and never cached; the key itself never reaches this server.
+ * Read-only account paths of Perpl's trading API. Users don't bring a key: the app's own key (PERPL_API_KEY plus its
+ * Ed25519 secret PERPL_API_SECRET, server-only env vars) signs them here. A request that arrives already signed is
+ * passed through untouched. Never cached.
  */
 const SIGNED = /^v1\/trading\/(wallet|positions|orders)$/;
 const SIGNED_HEADERS = ["x-api-key", "x-api-timestamp", "x-api-nonce", "x-api-signature"];
 
+/** Perpl's signature: Ed25519 over `chain_id \n METHOD \n target \n timestamp_ms \n nonce \n sha256(body) hex`. */
+async function serverSignature(target: string): Promise<Record<string, string> | null> {
+  const token = process.env.PERPL_API_KEY;
+  const secret = process.env.PERPL_API_SECRET?.trim().replace(/^0x/i, "");
+  if (!token || !secret || !/^[0-9a-fA-F]{64}$/.test(secret)) return null;
+  const ctx = await fetchUpstream(`${UPSTREAM}/v1/pub/context`);
+  const chainId = (JSON.parse(ctx.body) as { chain?: { chain_id?: number } }).chain?.chain_id;
+  if (!chainId) return null;
+  const timestamp = Date.now().toString();
+  const nonce = Buffer.from(crypto.getRandomValues(new Uint8Array(16))).toString("base64url");
+  const canonical = [chainId, "GET", target, timestamp, nonce, bytesToHex(sha256(new Uint8Array()))].join("\n");
+  const signature = Buffer.from(ed25519.sign(new TextEncoder().encode(canonical), hexToBytes(secret.toLowerCase()))).toString("base64url");
+  return { "x-api-key": token, "x-api-timestamp": timestamp, "x-api-nonce": nonce, "x-api-signature": signature };
+}
+
 export async function GET(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   const path = (await params).path.join("/");
   if (SIGNED.test(path)) {
-    const headers = Object.fromEntries(SIGNED_HEADERS.map((h) => [h, req.headers.get(h) ?? ""]));
-    if (Object.values(headers).some((v) => !v)) return Response.json({ error: "missing API key signature" }, { status: 401 });
+    let headers: Record<string, string> | null = Object.fromEntries(SIGNED_HEADERS.map((h) => [h, req.headers.get(h) ?? ""]));
+    if (Object.values(headers).some((v) => !v)) headers = await serverSignature(`/${path}`);
+    if (!headers) return Response.json({ error: "Perpl API key not configured on the server" }, { status: 503 });
     const r = await fetch(`${UPSTREAM}/${path}`, { headers, cache: "no-store", signal: AbortSignal.timeout(8_000) })
       .then(async (u) => ({ status: u.status, body: await u.text() }))
       .catch((e: Error) => ({ status: 502, body: JSON.stringify({ error: `Perpl unreachable: ${e.message}` }) }));

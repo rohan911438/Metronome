@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { erc20Abi, maxUint256, parseEventLogs, parseUnits, type Hash, type Log } from "viem";
+import { erc20Abi, formatEther, maxUint256, parseEther, parseEventLogs, parseUnits, type Hash, type Log } from "viem";
 import { miniAmmAbi, mockErc20Abi, sandwichLabAbi } from "@/lib/abi";
-import { BASE, LOG_CHUNK, QUOTE, explorerTx, lab, publicClient } from "@/lib/config";
+import { BASE, LOG_CHUNK, NETWORK, QUOTE, explorerTx, lab, publicClient } from "@/lib/config";
 import { priceToTick, rawPriceToHuman } from "@/lib/price";
 import { useWallet } from "@/lib/wallet";
 
@@ -68,12 +68,18 @@ const RECORDED: Record<string, { amm: { bps: number; pnl: number }; met: { bps: 
 const bps = (v: Venue) => (Number(v.attacked - v.clean) * 10_000) / Number(v.clean);
 const usd = (x: bigint) => Number(x) / 10 ** QUOTE.decimals;
 const SIZE = parseUnits("100000", BASE.decimals);
+/**
+ * MON a full run needs for gas: up to six transactions, and Monad bills the gas limit, so the run and finish
+ * transactions reserve about 0.2 MON each. Checked up front so a run doesn't stop halfway for lack of gas.
+ */
+const LAB_GAS = parseEther("0.45");
 
 export default function LabPage() {
   const { trader } = useWallet();
   const [run, setRun] = useState<LabRun | null>();
   const [busy, setBusy] = useState<string>();
   const [error, setError] = useState<string>();
+  const [needGas, setNeedGas] = useState(false);
 
   const refresh = useCallback(() => latestRun().then(setRun, () => setRun(null)), []);
   useEffect(() => void refresh(), [refresh]);
@@ -87,7 +93,16 @@ export default function LabPage() {
     if (!trader || !lab) return;
     const { sandwichLab, miniAmm } = lab;
     setError(undefined);
+    setNeedGas(false);
     try {
+      const mon = await publicClient.getBalance({ address: trader.address });
+      if (mon < LAB_GAS) {
+        setNeedGas(true);
+        setError(
+          `The lab sends up to six transactions and needs about ${formatEther(LAB_GAS)} MON for gas. This wallet has ${Number(formatEther(mon)).toFixed(3)} MON.`,
+        );
+        return;
+      }
       const spot = await publicClient.readContract({ address: miniAmm, abi: miniAmmAbi, functionName: "spotPrice" });
       const tick = priceToTick(rawPriceToHuman(spot));
       if (lab.mintable) {
@@ -118,6 +133,26 @@ export default function LabPage() {
       setRun(decode([...r.logs, ...f.logs]));
     } catch (e) {
       setError((e as Error).message.split("\n")[0]);
+    } finally {
+      setBusy(undefined);
+    }
+  }
+
+  async function topUp() {
+    if (!trader) return;
+    setBusy("Getting test MON…");
+    try {
+      const r = await fetch("/api/faucet", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ address: trader.address }),
+      });
+      const j = (await r.json()) as { error?: string };
+      if (!r.ok || j.error) throw new Error(j.error ?? `Faucet HTTP ${r.status}`);
+      setNeedGas(false);
+      setError(undefined);
+    } catch (e) {
+      setError((e as Error).message);
     } finally {
       setBusy(undefined);
     }
@@ -189,6 +224,11 @@ export default function LabPage() {
             {!trader ? "Sign in first" : (busy ?? "Run the sandwich")}
           </button>
           {error && <p className="mt-2 break-words text-xs text-sell">{error}</p>}
+          {needGas && NETWORK === "testnet" && (
+            <button disabled={!!busy} onClick={topUp} className="mt-2 w-full rounded-2xl bg-surface-2 py-3 text-sm font-medium text-fg disabled:opacity-40">
+              Top up gas with test MON
+            </button>
+          )}
         </section>
       )}
     </div>
