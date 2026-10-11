@@ -7,10 +7,11 @@
  * holding under MIN_MON, and each address and IP gets one MON drip per COOLDOWN_MS (best effort: per instance).
  */
 import { NextResponse, type NextRequest } from "next/server";
-import { createPublicClient, createWalletClient, erc20Abi, formatEther, http, isAddress, parseAbi, parseEther, parseUnits, type Address } from "viem";
+import { createPublicClient, createWalletClient, erc20Abi, formatEther, isAddress, parseAbi, parseEther, parseUnits, type Address } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { monadTestnet } from "viem/chains";
 import { deployments } from "@/generated/deployments";
+import { rpcTransport } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,6 @@ const COOLDOWN_MS = 10 * 60_000;
 const seen = new Map<string, number>();
 
 const market = deployments[String(monadTestnet.id) as keyof typeof deployments];
-const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL || monadTestnet.rpcUrls.default.http[0]!;
 
 export async function POST(req: NextRequest) {
   const key = process.env.FAUCET_PRIVATE_KEY as `0x${string}` | undefined;
@@ -32,8 +32,8 @@ export async function POST(req: NextRequest) {
   const { address } = (await req.json().catch(() => ({}))) as { address?: string };
   if (!address || !isAddress(address)) return NextResponse.json({ error: "Invalid address." }, { status: 400 });
 
-  const pub = createPublicClient({ chain: monadTestnet, transport: http(rpcUrl), pollingInterval: 400 }); // Monad blocks are ~0.4 s
-  const sponsor = createWalletClient({ account: privateKeyToAccount(key), chain: monadTestnet, transport: http(rpcUrl) });
+  const pub = createPublicClient({ chain: monadTestnet, transport: rpcTransport(), pollingInterval: 400 }); // Monad blocks are ~0.4 s
+  const sponsor = createWalletClient({ account: privateKeyToAccount(key), chain: monadTestnet, transport: rpcTransport() });
   const result: { mon?: string; ausd?: string; notes: string[] } = { notes: [] };
 
   // Gas money first: without it the user can't do anything else.

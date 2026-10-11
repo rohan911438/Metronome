@@ -14,7 +14,6 @@ import { toViemAccount } from "@category-labs/mera/viem";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   createWalletClient,
-  http,
   type Abi,
   type Account,
   type Address,
@@ -24,7 +23,7 @@ import {
   type TransactionReceipt,
 } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
-import { chain, devChain, publicClient, rpcUrl } from "./config";
+import { chain, devChain, publicClient, rpcTransport } from "./config";
 import { deriveKeys, type DerivedKeys } from "./keys";
 
 export interface WriteCall<abi extends Abi, name extends ContractFunctionName<abi, "nonpayable" | "payable">> {
@@ -79,7 +78,7 @@ const CRED_KEY = "metronome.passkey";
 const BURNER_KEY = "metronome.burner";
 
 function makeTrader(account: Account, kind: Trader["kind"]): Trader {
-  const client = createWalletClient({ account, chain, transport: http(rpcUrl) });
+  const client = createWalletClient({ account, chain, transport: rpcTransport() });
   return {
     address: account.address,
     kind,

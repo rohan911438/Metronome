@@ -1,4 +1,4 @@
-import { createPublicClient, defineChain, http, type Address, type Chain } from "viem";
+import { createPublicClient, defineChain, fallback, http, type Address, type Chain, type Transport } from "viem";
 import { anvil, monad, monadTestnet } from "viem/chains";
 import { deployments, labs } from "@/generated/deployments";
 
@@ -90,9 +90,20 @@ export const lab = loadLab();
 export const BASE = { symbol: "WMON", native: "MON", decimals: 18 } as const;
 export const QUOTE = { symbol: deployment.quoteSymbol, decimals: deployment.quoteDecimals };
 
+/**
+ * Monad's public testnet RPC allows 15 requests/s per user, which an open app polling every block exceeds, so trades
+ * failed with "RPC Request failed" (-32011 / HTTP 429). On testnet, unless NEXT_PUBLIC_RPC_URL is set, reads and sends
+ * go to Ankr's and thirdweb's public endpoints (no such limit in a 60-request burst), falling back to the next on errors.
+ */
+const TESTNET_RPCS = ["https://rpc.ankr.com/monad_testnet", "https://10143.rpc.thirdweb.com", "https://testnet-rpc.monad.xyz"];
+export function rpcTransport(opts: { batch?: boolean | { batchSize: number } } = {}): Transport {
+  if (NETWORK !== "testnet" || process.env.NEXT_PUBLIC_RPC_URL) return http(rpcUrl, opts);
+  return fallback(TESTNET_RPCS.map((u) => http(u, opts)));
+}
+
 export const publicClient = createPublicClient({
   chain,
-  transport: http(rpcUrl, { batch: true }),
+  transport: rpcTransport({ batch: { batchSize: 10 } }), // Ankr rejects batches over 10 (HTTP 413)
   pollingInterval: POLL_MS,
 });
 
