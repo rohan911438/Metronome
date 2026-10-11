@@ -12,6 +12,8 @@ import { bytesToHex, hexToBytes } from "@noble/hashes/utils.js";
 import type { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
+// Perpl's trading API answers US requests with HTTP 451, and Vercel's default region is in the US.
+export const preferredRegion = "bom1";
 
 const UPSTREAM =
   process.env.PERPL_API_URL ??
