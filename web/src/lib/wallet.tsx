@@ -86,7 +86,22 @@ function makeTrader(account: Account, kind: Trader["kind"]): Trader {
     async send(call) {
       const params = { ...call, account } as never;
       const gas = await publicClient.estimateContractGas(params);
-      const hash = await client.writeContract({ ...(params as object), chain, gas: (gas * 12n) / 10n } as never);
+      let hash: Hex;
+      try {
+        hash = await client.writeContract({ ...(params as object), chain, gas: (gas * 12n) / 10n } as never);
+      } catch (e) {
+        // A wallet that can't cover gas * price gets "Missing or invalid parameters" from the RPC; say what it means.
+        const fee = await publicClient.estimateFeesPerGas().catch(() => undefined);
+        const need = (gas * 12n) / 10n * (fee?.maxFeePerGas ?? 0n) + (call.value ?? 0n);
+        if ((await publicClient.getBalance({ address: account.address })) < need) {
+          throw new Error(
+            chain.testnet
+              ? "Not enough MON to pay gas. Open your account (top right) and tap “Get test MON for gas”."
+              : "Not enough MON to pay gas. Add MON to this wallet first.",
+          );
+        }
+        throw e;
+      }
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
       if (receipt.status !== "success") throw new Error(`${String(call.functionName)} reverted (${hash})`);
       return receipt;

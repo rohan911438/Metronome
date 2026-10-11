@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { createWalletClient, erc20Abi, http, parseAbi, parseEther, parseUnits, toHex, type Address } from "viem";
+import { createWalletClient, erc20Abi, http, parseEther, parseUnits, toHex, type Address } from "viem";
 import { privateKeyToAccount, privateKeyToAddress } from "viem/accounts";
 import { mockErc20Abi } from "@/lib/abi";
 import { BASE, QUOTE, chain, deployment, devChain, isFork, publicClient, rpcUrl } from "@/lib/config";
@@ -56,12 +56,7 @@ async function fundFork(to: Address) {
   }
 }
 
-/**
- * Agora's testnet AUSD faucet: 10,000 AUSD per request to any address, at most one request a minute across everyone
- * (MaxFrequencyExceeded), and only while the address holds under 100,000 AUSD.
- */
-const AUSD_FAUCET: Address = "0xd236c18D274E54FAccC3dd9DDA4b27965a73ee6C";
-const faucetAbi = parseAbi(["function requestFunds(address to)", "error MaxFrequencyExceeded()"]);
+/** Hosted testnet app: /api/faucet sends a new wallet gas MON and requests Agora's testnet AUSD for it. */
 const hasFaucet = chain.testnet && !isFork && deployment.quote.toLowerCase() === FORK_AUSD.toLowerCase();
 
 export function AccountSheet({ onClose }: { onClose: () => void }) {
@@ -70,6 +65,7 @@ export function AccountSheet({ onClose }: { onClose: () => void }) {
   const { data: bal } = useBalances(trader?.address);
   const [funding, setFunding] = useState(false);
   const [fundError, setFundError] = useState<string>();
+  const [fundNote, setFundNote] = useState<string>();
   const [copied, setCopied] = useState(false);
   const [showKeys, setShowKeys] = useState(false);
   const subAccounts = useMemo(() => (keys ? SUB_ACCOUNTS.map((i) => privateKeyToAddress(toHex(keys.walletKey(i)))) : []), [keys]);
@@ -208,24 +204,30 @@ export function AccountSheet({ onClose }: { onClose: () => void }) {
                       onClick={async () => {
                         setFunding(true);
                         setFundError(undefined);
+                        setFundNote(undefined);
                         try {
-                          await trader.send({ address: AUSD_FAUCET, abi: faucetAbi, functionName: "requestFunds", args: [trader.address] });
+                          // Our server pays the gas: a new passkey wallet has no MON to send its own request.
+                          const r = await fetch("/api/faucet", {
+                            method: "POST",
+                            headers: { "content-type": "application/json" },
+                            body: JSON.stringify({ address: trader.address }),
+                          });
+                          const j = (await r.json()) as { error?: string; mon?: string; ausd?: string; notes?: string[] };
+                          if (!r.ok || j.error) throw new Error(j.error ?? `Faucet HTTP ${r.status}`);
+                          const got = [j.mon && "0.1 MON for gas", j.ausd && `10,000 ${QUOTE.symbol}`].filter(Boolean).join(" and ");
+                          setFundNote([got && `Sent ${got}.`, ...(j.notes ?? [])].filter(Boolean).join(" "));
                         } catch (e) {
-                          const msg = (e as Error).message;
-                          setFundError(
-                            msg.includes("MaxFrequencyExceeded")
-                              ? "The faucet serves one request a minute across all users. Try again in a minute."
-                              : msg.split("\n")[0],
-                          );
+                          setFundError((e as Error).message);
                         } finally {
                           setFunding(false);
                         }
                       }}
                       className="mt-3 w-full rounded-2xl btn-primary py-3 font-medium disabled:opacity-50"
                     >
-                      {funding ? "Requesting…" : `Get 10,000 ${QUOTE.symbol} from Agora's testnet faucet`}
+                      {funding ? "Sending…" : `Get test MON for gas + 10,000 ${QUOTE.symbol}`}
                     </button>
                     <p className="mt-2 text-xs">Testnet AUSD is also Perpl&apos;s collateral, so it can open a Perpl account (100 AUSD minimum).</p>
+                    {fundNote && <p className="mt-2 break-words text-xs text-buy">{fundNote}</p>}
                     {fundError && <p className="mt-2 break-words text-xs text-sell">{fundError}</p>}
                   </>
                 )}
