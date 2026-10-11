@@ -9,6 +9,8 @@ Front-running and sandwich attacks stop working because **the order of transacti
 
 [Why](#the-problem) · [How it works](#how-it-works) · [Why Monad](#why-this-only-works-on-monad) · [Tracks](#tracks-and-bounties) · [Integrations](#integrations) · [Status](#status) · [Architecture](docs/architecture.md) · [Roadmap](docs/roadmap.md)
 
+**[Try it live → metronome-monad.vercel.app](https://metronome-monad.vercel.app)** (Monad testnet, sign in with a passkey)
+
 *Built for [Monad Metropolis](https://monad.xyz/developers/hackathons/metropolis) · Track 01: Onchain Finance & Trading*
 
 </div>
@@ -202,7 +204,10 @@ Metronome is meant to be **infrastructure**, not a single app:
 |---|---|
 | Metronome (WMON/AUSD market, with the price band) | [`0x44F6cF1A3c61AfCeAfF5017CA054b5754C2110E5`](https://testnet.monadscan.com/address/0x44F6cF1A3c61AfCeAfF5017CA054b5754C2110E5) |
 | MetronomeHeartbeat (CRE receiver, MON/USD feed) | [`0xBF310973D31a3766A1c943003f826a56F1986819`](https://testnet.monadscan.com/address/0xBF310973D31a3766A1c943003f826a56F1986819) |
+| Keeper wallet (settles batches; [`bots/src/keeper-service.ts`](bots/src/keeper-service.ts) on Render, status at [/health](https://metronome-keeper.onrender.com/health)) | [`0xF017E98A274897F499eE8D53D08C50D3Da521eAB`](https://testnet.monadscan.com/address/0xF017E98A274897F499eE8D53D08C50D3Da521eAB) |
 | SandwichLab (with MiniAMM and a tWMON/tAUSD lab market) | [`0xc2E9492f6b45c9e709e2e4a43FBfD505Bf71f01b`](https://testnet.monadscan.com/address/0xc2E9492f6b45c9e709e2e4a43FBfD505Bf71f01b) |
+
+**Hosting:** the app is on Vercel (project `metronome`, root `web/`, auto-deploys from `main`, `NEXT_PUBLIC_NETWORK=testnet`). The keeper runs on Render's free plan, which sleeps when idle; the app pings it while open, and it settles what is pending within about a minute of waking.
 
 Every verified address (tokens, oracles, CRE forwarders) is in [`docs/network.md`](docs/network.md). The demo video will be added here. Full plan: [`docs/roadmap.md`](docs/roadmap.md).
 

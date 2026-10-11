@@ -10,8 +10,8 @@ accounts.
       and we submit on testnet (allowed; the radar already reads mainnet).
 - [ ] **(you)** Claim testnet MON from the faucet (Cloudflare check) for the phone's passkey wallet: ~1 MON covers a
       Metronome trade, a Perpl account (needs 100 AUSD from the in-app faucet button) and a lab run.
-- [ ] Deploy the web app (Vercel or similar) with `NEXT_PUBLIC_NETWORK=testnet`, so the phone opens an HTTPS URL
-      (passkeys need HTTPS and a stable domain; the passkey is bound to that domain).
+- [x] Deploy the web app with `NEXT_PUBLIC_NETWORK=testnet`: https://metronome-monad.vercel.app (Vercel, Oct 11;
+      passkeys are bound to this domain). Keeper on Render: https://metronome-keeper.onrender.com/health.
 - [ ] **(you)** On a phone with passkey PRF (iOS 18+ Safari, or recent Android Chrome): open the URL, "Add to Home
       Screen".
 
