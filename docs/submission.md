@@ -21,7 +21,7 @@ accounts.
 |---|---|---|---|
 | 1 | 15 s pitch over the trade screen: "every Monad block is one auction; everyone gets the same price" | the problem and the idea | Track 01 |
 | 2 | Open the installed app → **Continue with Face ID** → wallet appears, no seed phrase | Mera login | Mera UX, Agora |
-| 3 | Account sheet → **Get 10,000 AUSD** → AUSD balance in the header | AUSD balance | Agora |
+| 3 | Account sheet → **Get test MON for gas + 10,000 AUSD** → AUSD balance in the header (our server pays the gas, so a brand-new wallet works) | AUSD balance | Agora |
 | 4 | Trade tab: buy MON "Now" → fill card a second later; no popup, no claim | Metronome trade, popup-free signing | Track 01, Mera UX |
 | 5 | Supply/demand chart animating, `/batch/<id>` page for the fill | uniform clearing price | Track 01 |
 | 6 | Lab: **Run the sandwich** → AMM victim −5%, Metronome 0% | MEV protection, live on testnet | Track 01 |
