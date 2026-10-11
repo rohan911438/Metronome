@@ -21,6 +21,8 @@ const faucetAbi = parseAbi(["function requestFunds(address to)", "error MaxFrequ
 // gas limit, and its run and finish transactions reserve ~0.2 MON each), a few trades and opening a Perpl account.
 const TARGET_MON = parseEther("0.6");
 const MIN_MON = parseEther("0.45");
+const MIN_DRIP = parseEther("0.05");
+const SPONSOR_RESERVE = parseEther("0.05");
 const COOLDOWN_MS = 10 * 60_000;
 const seen = new Map<string, number>();
 
@@ -51,13 +53,19 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: `This wallet or network was funded recently. Try again in ${mins} min.` }, { status: 429 });
       }
     }
-    seen.set(address.toLowerCase(), now);
-    seen.set(ip, now);
-    const value = TARGET_MON - monBalance;
-    const hash = await sponsor.sendTransaction({ to: address, value });
-    await pub.waitForTransactionReceipt({ hash });
-    result.mon = hash;
-    result.monAmount = Number(formatEther(value)).toFixed(2);
+    // Send what the pool can spare, keeping SPONSOR_RESERVE for the AUSD request's gas.
+    const spare = (await pub.getBalance({ address: sponsor.account.address })) - SPONSOR_RESERVE;
+    const value = TARGET_MON - monBalance < spare ? TARGET_MON - monBalance : spare;
+    if (value < MIN_DRIP) {
+      result.notes.push("The free test MON has run out for now. Get MON at faucet.monad.xyz.");
+    } else {
+      seen.set(address.toLowerCase(), now);
+      seen.set(ip, now);
+      const hash = await sponsor.sendTransaction({ to: address, value });
+      await pub.waitForTransactionReceipt({ hash });
+      result.mon = hash;
+      result.monAmount = Number(formatEther(value)).toFixed(2);
+    }
   } else {
     result.notes.push(`Already has ${Number(formatEther(monBalance)).toFixed(3)} MON for gas.`);
   }
