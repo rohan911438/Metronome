@@ -12,8 +12,8 @@ and the longer `…-rohans-projects-….vercel.app` links sit behind Vercel's lo
 | Keeper wallet | `0xF017E98A274897F499eE8D53D08C50D3Da521eAB` | Pays settle gas |
 | New-user faucet (`/api/faucet`) | Vercel route, sponsor wallet `0x8BED1F1d4299cd65eE31A3f6c2E3bd348f8457bc` | 0.1 MON for gas (once per wallet/IP per 10 min) + 10,000 AUSD from Agora's faucet (one request a minute across everyone) |
 | Indexer (Stats, portfolio history) | Envio Cloud | Public GraphQL, see README |
-| Demo liquidity | Deployer `0x0D35…2573` resting orders on the WMON/AUSD market | **Sell** 4 MON at 0.03432 (for buys) · **buy** orders at 0.03429 (for sells) |
-| RPC | Ankr → thirdweb → Monad RPC, automatic fallback | Monad's own RPC allows 15 requests/s per user, too few for a live app |
+| Demo liquidity | Deployer `0x0D35…2573` resting orders on the WMON/AUSD market | **Sell** 3 MON left at 0.03432 (for buys; 2 used in tests) · **buy** orders at 0.03429 (for sells) |
+| RPC | Browser → our `/api/rpc` proxy (server tries thirdweb → Ankr → Monad RPC, 2 s each) → public endpoints directly as backup | Public RPCs rate-limit (Monad: 15 req/s per user), hold requests or fail DNS on some networks |
 
 Each **buy** of 1 MON uses 1 MON of the sell orders. For more buys, send testnet MON to the deployer and post more
 asks (`placeOrder(false, 2365, size, true)` after wrapping, or `pnpm mm` with a small `MM_SIZE`).
