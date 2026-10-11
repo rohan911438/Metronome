@@ -98,3 +98,9 @@ export const publicClient = createPublicClient({
 
 export const explorerTx = (hash: string) =>
   chain.blockExplorers ? `${chain.blockExplorers.default.url}/tx/${hash}` : undefined;
+
+/**
+ * The hosted keeper (bots/src/keeper-service.ts on Render). Its free instance sleeps when idle, so the app pings it
+ * while open (app/providers.tsx) to wake it; it then settles and pays out pending batches.
+ */
+export const KEEPER_URL = process.env.NEXT_PUBLIC_KEEPER_URL ?? "";

@@ -12,7 +12,8 @@
     "test": "vitest run",
     "perpl:fork": "tsx src/perpl-fork.ts",
     "taker": "tsx src/taker.ts",
-    "radar": "tsx src/radar.ts"
+    "radar": "tsx src/radar.ts",
+    "keeper:service": "tsx src/keeper-service.ts"
   },
   "dependencies": {
     "dotenv": "17.2.3",
