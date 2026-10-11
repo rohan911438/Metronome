@@ -19,8 +19,11 @@ export const isLocal = NETWORK === "local";
 export const isFork = !isLocal && /^https?:\/\/(127\.0\.0\.1|localhost)(:|\/|$)/.test(rpcUrl);
 /** Throwaway test accounts and test funding are offered only on local chains. */
 export const devChain = isLocal || isFork;
-/** Poll at block speed: Monad blocks are ~0.4 s, Anvil's are 1 s here. */
-export const POLL_MS = isLocal ? 500 : 400;
+/**
+ * How often the app looks for a new block. Monad blocks are ~0.4 s, but refreshing every page's reads that often from
+ * every open browser runs into public RPC rate limits; 0.7 s still feels live.
+ */
+export const POLL_MS = isLocal ? 500 : 700;
 /** Metronome.PRICE_BAND: once the market has traded, orders must be within this many ticks of the last clearing price. */
 export const PRICE_BAND = 128;
 /** Max block span per eth_getLogs call; public RPCs cap this. */
@@ -91,19 +94,27 @@ export const BASE = { symbol: "WMON", native: "MON", decimals: 18 } as const;
 export const QUOTE = { symbol: deployment.quoteSymbol, decimals: deployment.quoteDecimals };
 
 /**
- * Monad's public testnet RPC allows 15 requests/s per user, which an open app polling every block exceeds, so trades
- * failed with "RPC Request failed" (-32011 / HTTP 429). On testnet, unless NEXT_PUBLIC_RPC_URL is set, reads and sends
- * go to Ankr's and thirdweb's public endpoints (no such limit in a 60-request burst), falling back to the next on errors.
+ * Testnet RPC. Monad's public endpoint allows 15 requests/s per user, too few for an app polling every block, and
+ * public endpoints sometimes hold a request or fail DNS from the user's network, which froze the app ("RPC failing").
+ * So in the browser, reads and sends go first to our own /api/rpc (same origin; the server tries thirdweb, Ankr and
+ * Monad's RPC in turn), then straight to those endpoints if our server is unreachable. Each try gives up after
+ * `timeout`; sends keep a long one, since a send retried elsewhere after a timeout could be broadcast twice.
+ * NEXT_PUBLIC_RPC_URL overrides all of this with one endpoint.
  */
 const TESTNET_RPCS = ["https://rpc.ankr.com/monad_testnet", "https://10143.rpc.thirdweb.com", "https://testnet-rpc.monad.xyz"];
-export function rpcTransport(opts: { batch?: boolean | { batchSize: number } } = {}): Transport {
-  if (NETWORK !== "testnet" || process.env.NEXT_PUBLIC_RPC_URL) return http(rpcUrl, opts);
-  return fallback(TESTNET_RPCS.map((u) => http(u, opts)));
+export function rpcTransport(opts: { batch?: boolean | { batchSize: number }; timeout?: number } = {}): Transport {
+  const { batch, timeout = 10_000 } = opts;
+  if (NETWORK !== "testnet" || process.env.NEXT_PUBLIC_RPC_URL) return http(rpcUrl, { batch, timeout });
+  const urls = typeof window === "undefined" ? TESTNET_RPCS : [`${window.location.origin}/api/rpc`, ...TESTNET_RPCS];
+  return fallback(
+    urls.map((u) => http(u, { batch, timeout, retryCount: 0 })),
+    { retryCount: 1, retryDelay: 150 },
+  );
 }
 
 export const publicClient = createPublicClient({
   chain,
-  transport: rpcTransport({ batch: { batchSize: 10 } }), // Ankr rejects batches over 10 (HTTP 413)
+  transport: rpcTransport({ batch: { batchSize: 10 }, timeout: 5_000 }), // Ankr rejects batches over 10 (HTTP 413)
   pollingInterval: POLL_MS,
 });
 
