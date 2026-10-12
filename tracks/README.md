@@ -52,7 +52,7 @@ Source: https://monad.xyz/developers/hackathons/metropolis
 | Existing projects are allowed only if the submitted work is new | 100% new build |
 | Submit a **working product** | Deploy to Monad (testnet 10143, then mainnet 143 if stable) with a live frontend URL |
 | **Public project profile** with **demo**, **written description**, **code access** | Public GitHub repo, 2–3 min demo video, this README plus docs |
-| Solo or team | Solo builder |
+| Solo or team | Team BROTHERHOOD |
 | Open source encouraged, not required | Repo is public |
 | Region restrictions are listed on the platform | TBC: check the dashboard |
 
