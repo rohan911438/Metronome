@@ -37,6 +37,18 @@ The old testnet WMON address `0x760AfE86e5de5fa0Ee542fc7B7B713e1c5425701` has **
 
 Machine-readable copy: `contracts/deployments/10143.json`.
 
+### Mainnet (Oct 12)
+
+| | Monad mainnet |
+|---|---|
+| **Metronome (WMON/AUSD)** | [`0xd9eD8A732D8daE96855b40e1ebD65E9d36583ea1`](https://monadscan.com/address/0xd9eD8A732D8daE96855b40e1ebD65E9d36583ea1) (block 112,700,845), Sourcify exact match. Same address as testnet v1 (same deployer, nonce 0), different code |
+| **MetronomeHeartbeat** (CRE receiver, MON/USD feed) | [`0xaA48F3ec9F1044c6ba61572Eb475522C96f9b69b`](https://monadscan.com/address/0xaA48F3ec9F1044c6ba61572Eb475522C96f9b69b) (block 112,701,053), Sourcify exact match. Accepts CRE's mainnet simulation forwarder `0x9eF6468C5f37b976E57d52054c693269479A784d`; switch with `setForwarder(0x76c9cf548b4179F8901cda1f8623568b58215E62)` and set `setWorkflowOwner` once the workflow is deployed |
+| Config | 4 shards, tick 2048 = 0.02618 AUSD (Coinbase MON/USD at deploy), price band ±128 ticks from the first trade, min order 1 MON, fee 5 bps, settle reward 0, oracle guard off |
+| Owner / deployer | `0x0D350bc1b4102732cFe243f80fe693f428572373` |
+| Deploy cost | ~0.83 MON for both contracts (Monad bills the gas limit) |
+
+Live checks on Oct 12: `NETWORK=mainnet pnpm smoke` (bots/src/smoke.ts) PASS: wrap, taker sell refunded at an empty settle, claim, resting ask joins its pool at settle, cancel refunds; WMON balances exact. CRE `simulate --broadcast --target mainnet-settings`: [price report MON/USD 0.026145](https://monadscan.com/tx/0x6b2734034d0aaf904e5821571d5e1f9ded9db2cff39c71547de65a85c737a3b3), then [settled batch 112,703,029](https://monadscan.com/tx/0x9bf7cb931f3c1005a8ac6cef87c7b8cb8682971fb16cedfcc5dcee029e6f244b). `NETWORK=mainnet pnpm keeper` settled and auto-claimed a taker order. No fill yet: the deployer holds no AUSD, so nobody can buy. Machine-readable copy: `contracts/deployments/143.json`.
+
 **Sandwich lab on testnet (Oct 4):** 100k MON victim, 100k MON attacker. AMM: victim paid 2,707.38 instead of 2,571.82 (−5.27%), attacker +119.76 tAUSD ([run](https://testnet.monadscan.com/tx/0x12915a346f7d4199f954d7c26e35b5f7bf783997ddf7a1577c70292a7c209712)). Metronome: victim paid exactly the clean 2,501.25, attacker −2.50 (the taker fee), clearing tick 2048 ([finish](https://testnet.monadscan.com/tx/0xa152acebf1f269c2efc30f80c02582f359d06322ded676bfac6da53264a66884)). Same numbers as the local test. Deploy + run cost ~1.2 MON. In the app, `/lab` mints the test tokens for the user and runs it from the passkey wallet.
 
 **Live run on the WMON/tAUSD market (Oct 3):** deployer minted 10M tAUSD and 100k to the taker wallet; keeper + market maker (2 bid levels; the deployer has too little WMON for asks) and `pnpm taker`: a 1 MON sell filled against the MM's bid and settled two blocks later ([tx](https://testnet.monadscan.com/tx/0x3640222b700c386f3644966c1ec9302b7ba3335281970d892614eed5e2fea174)). The CRE workflow then wrote MON/USD and settled a waiting batch (see `cre/metronome-heartbeat/README.md`). Deploying token + market + two receivers and the runs cost ~1.65 MON; ~2.05 MON left.

@@ -1,0 +1,10 @@
+{
+  "schedule": "*/30 * * * * *",
+  "chainName": "monad-mainnet",
+  "metronomeAddress": "0xd9eD8A732D8daE96855b40e1ebD65E9d36583ea1",
+  "heartbeatAddress": "0xaA48F3ec9F1044c6ba61572Eb475522C96f9b69b",
+  "gasLimit": 4000000,
+  "gasOverhead": 250000,
+  "priceUrl": "https://api.coinbase.com/v2/prices/MON-USD/spot",
+  "priceMaxAgeSec": 300
+}

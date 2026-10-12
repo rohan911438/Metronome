@@ -1,0 +1,21 @@
+{
+  "heartbeat": {
+    "address": "0xaA48F3ec9F1044c6ba61572Eb475522C96f9b69b",
+    "deployBlock": 112701053,
+    "forwarder": "0x9eF6468C5f37b976E57d52054c693269479A784d",
+    "metronome": "0xd9eD8A732D8daE96855b40e1ebD65E9d36583ea1",
+    "owner": "0x0D350bc1b4102732cFe243f80fe693f428572373"
+  },
+  "metronome": {
+    "address": "0xd9eD8A732D8daE96855b40e1ebD65E9d36583ea1",
+    "base": "0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A",
+    "deployBlock": 112700845,
+    "minOrderSize": 1000000000000000000,
+    "owner": "0x0D350bc1b4102732cFe243f80fe693f428572373",
+    "priceMin": "3380484621390287980131",
+    "quote": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
+    "quoteDecimals": 6,
+    "quoteSymbol": "AUSD",
+    "shards": 4
+  }
+}

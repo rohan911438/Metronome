@@ -88,10 +88,11 @@ contract Handler is Test {
             if (o.isBuy && baseOut > 0) {
                 fills++;
                 // Quote spent this claim must not exceed what `baseOut` costs at the limit (plus rounding). Makers
-                // pay no fee.
+                // pay no fee. Each settled batch rounds the pool's cost up by at most 1 unit, so allow 1 per batch
+                // since the order joined (plus 2 for the claim itself).
                 uint256 spent = o.escrow - after_.escrow - (after_.closed ? quoteOut : 0);
                 uint256 atLimit = m.restingBuyEscrow(baseOut, o.tick) - m.RESTING_BUY_BUFFER();
-                if (spent > atLimit + 2) limitViolations++;
+                if (spent > atLimit + 2 + (block.number - o.batchId)) limitViolations++;
             }
             if (!o.isBuy && quoteOut > 0) fills++;
             return;
