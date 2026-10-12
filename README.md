@@ -152,7 +152,7 @@ One main track, plus sponsor bounties that the same product qualifies for. Detai
 
 | Partner | Role in Metronome | Status |
 |---|---|---|
-| **Monad** | Execution layer: 300 ms batches, parallel execution, cheap clearing | ✅ Live on testnet |
+| **Monad** | Execution layer: 300 ms batches, parallel execution, cheap clearing | ✅ Contracts on mainnet (verified); demo app on testnet |
 | **Mera** | Passkey login; one passkey derives the wallet key, the Perpl API key and a device encryption key; popup-free signing | ✅ In the app |
 | **Envio** | HyperIndex indexer ([`indexer/`](indexer/README.md)) behind the Stats page; totals checked against raw chain logs | ✅ Hosted on Envio Cloud (Monad testnet, HyperSync); also runs locally in Docker |
 | **Perpl** | Perps tab: live markets, candles and order book; open a Perpl account (approve, deposit, one-click trading) from the passkey wallet; paste an API key, stored encrypted with the passkey | ✅ Data, account setup and trading, live on testnet |
@@ -194,11 +194,20 @@ Metronome is meant to be **infrastructure**, not a single app:
 | CRE workflow deployed on Chainlink's network | Oct 10 | ⏳ optional: Chainlink deploys simulated hackathon workflows; our deploy access is pending |
 | Nansen MEV radar | Oct 10 | ✅ Oct 3 |
 | Mainnet readiness: fork test against real WMON + AUSD, deploy script (K=4) dry-run | Oct 11 | ✅ Oct 4 |
-| Monad mainnet deploy | Oct 11 | ⏳ needs ~3 MON + seed liquidity on mainnet |
+| Monad mainnet deploy: market + CRE receiver, Sourcify-verified; smoke test, keeper and CRE settle verified live ([details](docs/network.md#mainnet-oct-12)) | Oct 11 | ✅ Oct 12 |
 
 **Tests:** 112 Foundry tests (unit, differential fuzz, invariants, gas and shard benchmarks, and a fork test against real mainnet WMON and AUSD) and 7 Go workflow tests, all run in CI (the fork test needs `MONAD_RPC_URL`).
 
-**Monad testnet contracts**
+**Monad mainnet contracts** (chain 143, deployed Oct 12, source verified on Sourcify)
+
+| Contract | Address |
+|---|---|
+| Metronome (WMON/AUSD market) | [`0xd9eD8A732D8daE96855b40e1ebD65E9d36583ea1`](https://monadscan.com/address/0xd9eD8A732D8daE96855b40e1ebD65E9d36583ea1) |
+| MetronomeHeartbeat (Chainlink CRE receiver, MON/USD feed) | [`0xaA48F3ec9F1044c6ba61572Eb475522C96f9b69b`](https://monadscan.com/address/0xaA48F3ec9F1044c6ba61572Eb475522C96f9b69b) |
+
+Live on mainnet: [CRE MON/USD report](https://monadscan.com/tx/0x6b2734034d0aaf904e5821571d5e1f9ded9db2cff39c71547de65a85c737a3b3) and [CRE-settled batch](https://monadscan.com/tx/0x9bf7cb931f3c1005a8ac6cef87c7b8cb8682971fb16cedfcc5dcee029e6f244b). The hosted demo app runs on testnet (free test funds for judges).
+
+**Monad testnet contracts** (used by the hosted demo app)
 
 | Contract | Address |
 |---|---|

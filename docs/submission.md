@@ -5,9 +5,8 @@ accounts.
 
 ## 1. Before filming
 
-- [ ] **(you)** Send ~3 MON (mainnet) to the deployer `0x0D350bc1b4102732cFe243f80fe693f428572373` if we deploy to
-      mainnet: deploy ~1.4 MON, the rest for seeding and settles. Plus a little AUSD/WMON to seed the book. Skip this
-      and we submit on testnet (allowed; the radar already reads mainnet).
+- [x] Mainnet contracts deployed and Sourcify-verified Oct 12 (market `0xd9eD8A732D8daE96855b40e1ebD65E9d36583ea1`, CRE receiver
+      `0xaA48F3ec9F1044c6ba61572Eb475522C96f9b69b`); put these in the submission form. The demo app stays on testnet.
 - [ ] **(you)** Claim testnet MON from the faucet (Cloudflare check) for the phone's passkey wallet: ~1 MON covers a
       Metronome trade, a Perpl account (needs 100 AUSD from the in-app faucet button) and a lab run.
 - [x] Deploy the web app with `NEXT_PUBLIC_NETWORK=testnet`: https://metronome-monad.vercel.app (Vercel, Oct 11;
